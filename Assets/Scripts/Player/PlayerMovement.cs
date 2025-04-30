@@ -11,7 +11,6 @@ public enum CharacterState
     JUMPING,
     FALLING,
     DASHING,
-    CLIMBING
 }
 
 public class PlayerMovement : MonoBehaviour
@@ -33,7 +32,6 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 1f;
     public float vSpeed = 0f;
     public float gravity = -30f;
-    public float airControlMultiplier = 0.5f; // Adicionado
 
     private float groundedGraceTime = 0.15f;
     private float lastGroundedTime;
@@ -43,30 +41,41 @@ public class PlayerMovement : MonoBehaviour
     public float dashDistance = 10f;
     public float dashCooldown = 1f;
     public float lastDashTime = -Mathf.Infinity;
+    public float dashDuration = 0.2f;
+    public LayerMask dashCollisionMask;
 
-    [Header("Escalada")]
-    public float climbSpeed = 3f;
-    public float climbCheckDistance = 1f;
-    public LayerMask climbableLayer;
-    private bool isClimbing = false;
-    private float climbCooldown = 0.5f;
-    private float lastClimbExitTime = -Mathf.Infinity;
+    [Header("Movimento no Ar")]
+    public float airControlMultiplier = 0.5f;
+    public float airAcceleration = 5f;
+    public float airDrag = 2f;
+
+    private Vector3 finalMovement;
+    private Coroutine dashRoutine;
+    private Vector3 currentHorizontalVelocity = Vector3.zero;
 
     private void Start()
     {
-        if (_characterController.isGrounded)
-        {
-            vSpeed = -10f;
-        }
-
         playerInput = GetComponent<PlayerInput>();
         moveAction = playerInput.actions.FindAction("Move");
         jumpAction = playerInput.actions.FindAction("Jump");
         dashAction = playerInput.actions.FindAction("Dash");
+
+        if (_characterController.isGrounded)
+        {
+            lastGroundedTime = Time.time;
+            vSpeed = -2f;
+            currentState = CharacterState.IDLE;
+        }
+        else
+        {
+            currentState = CharacterState.FALLING;
+        }
     }
 
     private void Update()
     {
+        finalMovement = Vector3.zero;
+
         if (_characterController.isGrounded)
         {
             lastGroundedTime = Time.time;
@@ -79,24 +88,22 @@ public class PlayerMovement : MonoBehaviour
                 HandleMovement();
                 HandleJump();
                 HandleDash();
-                CheckClimb();
                 break;
 
             case CharacterState.JUMPING:
             case CharacterState.FALLING:
                 HandleMovement();
                 HandleGravity();
-                CheckClimb();
-                break;
-
-            case CharacterState.DASHING:
-                HandleDash();
-                break;
-
-            case CharacterState.CLIMBING:
-                HandleClimb();
                 break;
         }
+
+        // Aplicar movimento horizontal primeiro
+        Vector3 horizontalVelocity = currentHorizontalVelocity;
+        _characterController.Move(horizontalVelocity * Time.deltaTime);
+
+        // Aplicar movimento vertical depois
+        Vector3 verticalVelocity = Vector3.up * vSpeed;
+        _characterController.Move(verticalVelocity * Time.deltaTime);
 
         UpdateState();
     }
@@ -104,30 +111,8 @@ public class PlayerMovement : MonoBehaviour
     void UpdateState()
     {
         Vector2 input = moveAction.ReadValue<Vector2>();
-        bool isMovingOnWall = input.y > 0.1f || Mathf.Abs(input.x) > 0.1f || input.y < -0.1f;
 
-        if (currentState == CharacterState.CLIMBING)
-        {
-            if (IsTouchingClimbable(out RaycastHit hit))
-            {
-                transform.rotation = Quaternion.LookRotation(-hit.normal);
-                return;
-            }
-            else
-            {
-                isClimbing = false;
-                currentState = CharacterState.FALLING;
-                return;
-            }
-        }
-
-        if (IsTouchingClimbable(out RaycastHit climbHit) && isMovingOnWall)
-        {
-            isClimbing = true;
-            transform.rotation = Quaternion.LookRotation(-climbHit.normal);
-            currentState = CharacterState.CLIMBING;
-        }
-        else if (!isReallyGrounded)
+        if (!isReallyGrounded)
         {
             currentState = vSpeed > 0 ? CharacterState.JUMPING : CharacterState.FALLING;
         }
@@ -159,26 +144,28 @@ public class PlayerMovement : MonoBehaviour
         cameraForward.Normalize();
         cameraRight.Normalize();
 
-        Vector3 moveDirection = Vector3.zero;
-        if (inputDirection != Vector3.zero)
-        {
-            moveDirection = (cameraForward * input.y + cameraRight * input.x);
+        Vector3 moveDirection = (cameraForward * input.y + cameraRight * input.x).normalized;
 
-            // Só rotaciona se estiver no chão
-            if (currentState != CharacterState.JUMPING && currentState != CharacterState.FALLING)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-            }
+        if (moveDirection != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
         }
 
-        float controlMultiplier = (currentState == CharacterState.JUMPING || currentState == CharacterState.FALLING)
-            ? airControlMultiplier : 1f;
+        if (_characterController.isGrounded)
+        {
+            currentHorizontalVelocity = moveDirection * moveSpeed;
+        }
+        else
+        {
+            Vector3 targetVelocity = moveDirection * moveSpeed * airControlMultiplier;
+            currentHorizontalVelocity = Vector3.Lerp(currentHorizontalVelocity, targetVelocity, airAcceleration * Time.deltaTime);
 
-        Vector3 speedVector = moveDirection * moveSpeed * controlMultiplier;
-        speedVector.y = vSpeed;
-
-        _characterController.Move(speedVector * Time.deltaTime);
+            if (moveDirection == Vector3.zero)
+            {
+                currentHorizontalVelocity = Vector3.Lerp(currentHorizontalVelocity, Vector3.zero, airDrag * Time.deltaTime);
+            }
+        }
     }
 
     void HandleJump()
@@ -189,93 +176,60 @@ public class PlayerMovement : MonoBehaviour
             currentState = CharacterState.JUMPING;
             lastGroundedTime = -1;
         }
+
+        if (!isReallyGrounded)
+        {
+            vSpeed += gravity * Time.deltaTime;
+        }
     }
 
     void HandleGravity()
     {
-        if (currentState == CharacterState.CLIMBING) return;
-
-        if (!_characterController.isGrounded)
+        if (_characterController.isGrounded && vSpeed < 0)
         {
-            vSpeed += gravity * Time.deltaTime;
-        }
-        else if (vSpeed < 0)
-        {
-            vSpeed = gravity * Time.deltaTime;
-        }
-    }
-
-    void HandleDash()
-    {
-        if (dashAction.WasPressedThisFrame() && Time.time >= lastDashTime + dashCooldown)
-        {
-            Vector3 dashDirection = transform.forward;
-            _characterController.Move(dashDirection * dashDistance);
-            lastDashTime = Time.time;
-        }
-    }
-
-    void CheckClimb()
-    {
-        Vector2 input = moveAction.ReadValue<Vector2>();
-        Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, climbCheckDistance, climbableLayer))
-        {
-            if (Mathf.Abs(input.x) > 0.1f || Mathf.Abs(input.y) > 0.1f)
-            {
-                isClimbing = true;
-            }
+            vSpeed = -2f;
         }
         else
         {
-            isClimbing = false;
+            vSpeed += gravity * Time.deltaTime;
         }
     }
 
-    void HandleClimb()
+    #region DASH
+    void HandleDash()
     {
-        if (!IsTouchingClimbable(out RaycastHit hit))
+        if (dashAction.WasPressedThisFrame() && Time.time >= lastDashTime + dashCooldown && dashRoutine == null)
         {
-            isClimbing = false;
-            currentState = CharacterState.FALLING;
-            return;
-        }
-
-        Vector3 wallNormal = hit.normal;
-        Vector3 lookDirection = -wallNormal;
-        lookDirection.y = 0;
-        if (lookDirection != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Time.deltaTime);
-        }
-
-        Vector2 input = moveAction.ReadValue<Vector2>();
-        float adjustedY = input.y;
-        if (Mathf.Abs(input.x) > 0.1f && Mathf.Abs(input.y) < 0.1f)
-            adjustedY = 0.3f;
-
-        Vector3 climbDir = new Vector3(input.x, adjustedY, 0);
-        Vector3 localClimb = transform.TransformDirection(climbDir);
-        _characterController.Move(localClimb * climbSpeed * Time.deltaTime);
-
-        if (jumpAction.WasPressedThisFrame())
-        {
-            isClimbing = false;
-            vSpeed = jumpForce;
-            currentState = CharacterState.JUMPING;
-
-            Vector3 pushBack = -transform.forward * 0.3f;
-            _characterController.Move(pushBack);
-            lastClimbExitTime = Time.time;
+            dashRoutine = StartCoroutine(PerformDash());
         }
     }
 
-    bool IsTouchingClimbable(out RaycastHit hit)
+    IEnumerator PerformDash()
     {
-        Ray ray = new Ray(transform.position + Vector3.up * 1.0f, transform.forward);
-        return Physics.Raycast(ray, out hit, climbCheckDistance + 0.1f, climbableLayer);
+        currentState = CharacterState.DASHING;
+        float elapsedTime = 0f;
+        Vector3 dashDirection = transform.forward;
+
+        while (elapsedTime < dashDuration)
+        {
+            float step = (dashDistance / dashDuration) * Time.deltaTime;
+            if (!Physics.CapsuleCast(_characterController.transform.position + _characterController.center, _characterController.transform.position + _characterController.center, _characterController.radius, dashDirection, out RaycastHit hit, step, dashCollisionMask))
+            {
+                _characterController.Move(dashDirection * step);
+            }
+            else
+            {
+                break; // colisão detectada
+            }
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        lastDashTime = Time.time;
+        dashRoutine = null;
+        currentState = CharacterState.FALLING;
     }
+    #endregion
 }
 
