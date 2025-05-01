@@ -687,7 +687,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 533043010}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.058169253, y: 0.82930857, z: -0.08790801, w: 0.54875845}
+  m_LocalRotation: {x: -0.100851744, y: 0.8199093, z: 0.15241171, w: 0.5425389}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -801,7 +801,7 @@ GameObject:
   - component: {fileID: 742550759}
   - component: {fileID: 742550758}
   - component: {fileID: 742550757}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -981,7 +981,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.05816925, y: 0.8293087, z: -0.08790805, w: 0.5487583}
+  m_LocalRotation: {x: -0.10085179, y: 0.8199092, z: 0.15241176, w: 0.54253894}
   m_LocalPosition: {x: -8.460508, y: 4.023777, z: 3.5937653}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1198,7 +1198,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1074735805}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.097857475, y: 0.8207375, z: -0.14788663, w: 0.54308695}
+  m_LocalRotation: {x: -0.060598675, y: 0.8289112, z: 0.09157946, w: 0.5484955}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1346,7 +1346,7 @@ MonoBehaviour:
   target: {fileID: 1795996425}
   offset: {x: 0, y: 3, z: 7}
   sensitivity: 3
-  distance: 6
+  distance: 9
   height: 3
   smoothSpeed: 10
 --- !u!4 &1508105910
@@ -1436,7 +1436,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1533882770}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.07250928, y: 0.82672423, z: -0.1095793, w: 0.5470484}
+  m_LocalRotation: {x: -0.08602701, y: 0.8237588, z: 0.13000791, w: 0.54508615}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1578,12 +1578,11 @@ Transform:
   m_GameObject: {fileID: 1795996421}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.6, z: 0}
+  m_LocalPosition: {x: 0, y: 6.08, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1299144934}
-  - {fileID: 2034253243}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &1795996429
@@ -1663,13 +1662,20 @@ MonoBehaviour:
   moveSpeed: 10
   vSpeed: 0
   gravity: -9.8
-  airControlMultiplier: 0.65
   dashDistance: 10
   dashCooldown: 1
   lastDashTime: -Infinity
-  climbSpeed: 3
+  dashDuration: 0.2
+  dashCollisionMask:
+    serializedVersion: 2
+    m_Bits: 0
+  airControlMultiplier: 0.65
+  airAcceleration: 5
+  airDrag: 2
+  climbSpeed: 2
   climbCheckDistance: 1
-  climbableLayer:
+  lateralClimbSpeed: 1
+  climbableMask:
     serializedVersion: 2
     m_Bits: 8
 --- !u!143 &1795996432
@@ -2161,37 +2167,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2034253242
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2034253243}
-  m_Layer: 0
-  m_Name: CameraTarget
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2034253243
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2034253242}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -12.43}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1795996425}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

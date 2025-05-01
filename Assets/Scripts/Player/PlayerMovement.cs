@@ -11,10 +11,13 @@ public enum CharacterState
     JUMPING,
     FALLING,
     DASHING,
+    CLIMB_JUMP_AIMING,
+    CLIMBING
 }
 
 public class PlayerMovement : MonoBehaviour
 {
+
     public CharacterState currentState = CharacterState.IDLE;
 
     [Header("Inputs")]
@@ -49,6 +52,13 @@ public class PlayerMovement : MonoBehaviour
     public float airAcceleration = 5f;
     public float airDrag = 2f;
 
+    [Header("Escalada")]
+    public float climbSpeed = 2f;
+    public float climbCheckDistance = 1f;
+    public float lateralClimbSpeed = 1f;
+    public LayerMask climbableMask;
+
+    private bool isGrabbingWall = false;
     private Vector3 finalMovement;
     private Coroutine dashRoutine;
     private Vector3 currentHorizontalVelocity = Vector3.zero;
@@ -56,6 +66,8 @@ public class PlayerMovement : MonoBehaviour
     private void Start()
     {
         playerInput = GetComponent<PlayerInput>();
+        playerInput.actions.Enable();
+
         moveAction = playerInput.actions.FindAction("Move");
         jumpAction = playerInput.actions.FindAction("Jump");
         dashAction = playerInput.actions.FindAction("Dash");
@@ -81,6 +93,12 @@ public class PlayerMovement : MonoBehaviour
             lastGroundedTime = Time.time;
         }
 
+        if (CheckClimbableWall() && jumpAction.WasPressedThisFrame())
+        {
+            isGrabbingWall = true;
+            currentState = CharacterState.CLIMBING;
+        }
+
         switch (currentState)
         {
             case CharacterState.IDLE:
@@ -95,13 +113,19 @@ public class PlayerMovement : MonoBehaviour
                 HandleMovement();
                 HandleGravity();
                 break;
+
+            case CharacterState.CLIMBING:
+                HandleClimb();
+                break;
+
+            case CharacterState.DASHING:
+                // Durante o dash, o movimento é tratado pela coroutine
+                break;
         }
 
-        // Aplicar movimento horizontal primeiro
         Vector3 horizontalVelocity = currentHorizontalVelocity;
         _characterController.Move(horizontalVelocity * Time.deltaTime);
 
-        // Aplicar movimento vertical depois
         Vector3 verticalVelocity = Vector3.up * vSpeed;
         _characterController.Move(verticalVelocity * Time.deltaTime);
 
@@ -110,32 +134,35 @@ public class PlayerMovement : MonoBehaviour
 
     void UpdateState()
     {
-        Vector2 input = moveAction.ReadValue<Vector2>();
+        if (currentState == CharacterState.CLIMBING && (!CheckClimbableWall() || !isGrabbingWall))
+        {
+            isGrabbingWall = false;
+            currentState = CharacterState.FALLING;
+            return;
+        }
 
-        if (!isReallyGrounded)
+        if (currentState != CharacterState.CLIMBING && currentState != CharacterState.DASHING)
         {
-            currentState = vSpeed > 0 ? CharacterState.JUMPING : CharacterState.FALLING;
-        }
-        else if (IsMoving())
-        {
-            currentState = CharacterState.WALKING;
-        }
-        else
-        {
-            currentState = CharacterState.IDLE;
-        }
-    }
+            Vector2 input = moveAction.ReadValue<Vector2>();
 
-    bool IsMoving()
-    {
-        Vector2 input = moveAction.ReadValue<Vector2>();
-        return input.magnitude > 0.1f;
+            if (!isReallyGrounded)
+            {
+                currentState = vSpeed > 0 ? CharacterState.JUMPING : CharacterState.FALLING;
+            }
+            else if (input.magnitude > 0.1f)
+            {
+                currentState = CharacterState.WALKING;
+            }
+            else
+            {
+                currentState = CharacterState.IDLE;
+            }
+        }
     }
 
     void HandleMovement()
     {
         Vector2 input = moveAction.ReadValue<Vector2>();
-        Vector3 inputDirection = new Vector3(input.x, 0, input.y).normalized;
 
         Vector3 cameraForward = cameraTransform.forward;
         Vector3 cameraRight = cameraTransform.right;
@@ -219,7 +246,7 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                break; // colisão detectada
+                break;
             }
 
             elapsedTime += Time.deltaTime;
@@ -231,5 +258,61 @@ public class PlayerMovement : MonoBehaviour
         currentState = CharacterState.FALLING;
     }
     #endregion
+
+    void HandleClimb()
+    {
+        if (!CheckClimbableWall())
+        {
+            isGrabbingWall = false;
+            currentState = CharacterState.FALLING;
+            return;
+        }
+
+        Vector2 input = moveAction.ReadValue<Vector2>();
+
+        if (Input.GetKey(KeyCode.LeftControl))
+        {
+            Vector3 launchDirection = Vector3.zero;
+
+            if (input.y < -0.5f)
+            {
+                launchDirection = -transform.forward + Vector3.up * 0.75f;
+            }
+            else if (Mathf.Abs(input.x) > 0.5f)
+            {
+                launchDirection = transform.right * Mathf.Sign(input.x) + Vector3.up * 0.75f;
+            }
+
+            if (launchDirection != Vector3.zero)
+            {
+                launchDirection.Normalize();
+                vSpeed = jumpForce * 0.75f;
+                currentHorizontalVelocity = launchDirection * moveSpeed * 1.2f;
+                currentState = CharacterState.JUMPING;
+                return;
+            }
+        }
+
+        Vector3 upward = Vector3.up * input.y * climbSpeed;
+        Vector3 sideways = transform.right * input.x * lateralClimbSpeed;
+        Vector3 climbMovement = upward + sideways;
+        _characterController.Move(climbMovement * Time.deltaTime);
+        vSpeed = 0f;
+
+        if (Physics.Raycast(transform.position + Vector3.up, transform.forward, out RaycastHit hit, climbCheckDistance, climbableMask))
+        {
+            Vector3 forwardOnWall = -hit.normal;
+            forwardOnWall.y = 0;
+            transform.rotation = Quaternion.LookRotation(forwardOnWall);
+        }
+    }
+
+    bool CheckClimbableWall()
+    {
+        Vector3 origin = transform.position + Vector3.up;
+        Vector3 direction = transform.forward;
+        return Physics.Raycast(origin, direction, climbCheckDistance, climbableMask);
+    }
 }
+
 
