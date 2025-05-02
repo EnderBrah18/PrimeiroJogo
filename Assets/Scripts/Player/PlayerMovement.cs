@@ -92,14 +92,24 @@ public class PlayerMovement : MonoBehaviour
         {
             lastGroundedTime = Time.time;
         }
+        if (currentState == CharacterState.CLIMBING && jumpAction.WasPressedThisFrame())
+        {
+            isGrabbingWall = false;
+            currentState = CharacterState.FALLING;
+            vSpeed = 0f;
 
-        if (CheckClimbableWall() && jumpAction.WasPressedThisFrame())
+            return;
+        }
+
+            if (CheckClimbableWall() && jumpAction.WasPressedThisFrame())
         {
             isGrabbingWall = true;
             currentState = CharacterState.CLIMBING;
+            currentHorizontalVelocity = Vector3.zero;
         }
 
-        switch (currentState)
+
+            switch (currentState)
         {
             case CharacterState.IDLE:
             case CharacterState.WALKING:
@@ -265,6 +275,7 @@ public class PlayerMovement : MonoBehaviour
         {
             isGrabbingWall = false;
             currentState = CharacterState.FALLING;
+            vSpeed = 0f;
             return;
         }
 
@@ -291,7 +302,9 @@ public class PlayerMovement : MonoBehaviour
                 currentState = CharacterState.JUMPING;
                 return;
             }
+
         }
+
 
         Vector3 upward = Vector3.up * input.y * climbSpeed;
         Vector3 sideways = transform.right * input.x * lateralClimbSpeed;
@@ -305,6 +318,7 @@ public class PlayerMovement : MonoBehaviour
             forwardOnWall.y = 0;
             transform.rotation = Quaternion.LookRotation(forwardOnWall);
         }
+
     }
 
     bool CheckClimbableWall()
