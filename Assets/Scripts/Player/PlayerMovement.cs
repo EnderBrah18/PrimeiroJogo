@@ -11,6 +11,7 @@ public enum CharacterState
     JUMPING,
     FALLING,
     DASHING,
+    SPRINTING,
     CLIMB_JUMP_AIMING,
     CLIMBING
 }
@@ -25,6 +26,7 @@ public class PlayerMovement : MonoBehaviour
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction dashAction;
+    private InputAction sprintAction;
 
     public CharacterController _characterController;
     public Transform cameraTransform;
@@ -58,6 +60,18 @@ public class PlayerMovement : MonoBehaviour
     public float lateralClimbSpeed = 1f;
     public LayerMask climbableMask;
 
+    [Header("Estamina")]
+    public float maxStamina = 100f;
+    public float currentStamina;
+    public float staminaRegenRate = 15f;
+    public float staminaSprintCost = 20f; // por segundo
+    public float staminaClimbCost = 10f;  // por segundo
+    public float staminaJumpCost = 15f;
+    public float staminaMinToSprint = 5f;
+    public float staminaMinToClimb = 5f;
+    public float sprintMultiplier = 1.75f;
+    public bool isSprinting = false;
+
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
     private Coroutine dashRoutine;
@@ -71,6 +85,9 @@ public class PlayerMovement : MonoBehaviour
         moveAction = playerInput.actions.FindAction("Move");
         jumpAction = playerInput.actions.FindAction("Jump");
         dashAction = playerInput.actions.FindAction("Dash");
+        sprintAction = playerInput.actions.FindAction("Sprint");
+
+        currentStamina = maxStamina;
 
         if (_characterController.isGrounded)
         {
@@ -139,6 +156,7 @@ public class PlayerMovement : MonoBehaviour
         Vector3 verticalVelocity = Vector3.up * vSpeed;
         _characterController.Move(verticalVelocity * Time.deltaTime);
 
+        UpdateStamina();
         UpdateState();
     }
 
@@ -169,7 +187,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
     }
-
+    #region Movement
     void HandleMovement()
     {
         Vector2 input = moveAction.ReadValue<Vector2>();
@@ -191,7 +209,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (_characterController.isGrounded)
         {
-            currentHorizontalVelocity = moveDirection * moveSpeed;
+            float speed = isSprinting ? moveSpeed * sprintMultiplier : moveSpeed;
+            currentHorizontalVelocity = moveDirection * speed;
         }
         else
         {
@@ -207,11 +226,12 @@ public class PlayerMovement : MonoBehaviour
 
     void HandleJump()
     {
-        if (isReallyGrounded && jumpAction.WasPressedThisFrame())
+        if (isReallyGrounded && jumpAction.WasPressedThisFrame() && currentStamina >= staminaJumpCost)
         {
             vSpeed = jumpForce;
             currentState = CharacterState.JUMPING;
             lastGroundedTime = -1;
+            currentStamina -= staminaJumpCost;
         }
 
         if (!isReallyGrounded)
@@ -268,9 +288,17 @@ public class PlayerMovement : MonoBehaviour
         currentState = CharacterState.FALLING;
     }
     #endregion
-
+    #region Climb
     void HandleClimb()
     {
+        if (currentStamina < staminaMinToClimb)
+        {
+            isGrabbingWall = false;
+            currentState = CharacterState.FALLING;
+            vSpeed = 0f;
+            return;
+        }
+
         if (!CheckClimbableWall())
         {
             isGrabbingWall = false;
@@ -327,6 +355,41 @@ public class PlayerMovement : MonoBehaviour
         Vector3 direction = transform.forward;
         return Physics.Raycast(origin, direction, climbCheckDistance, climbableMask);
     }
+
+    void UpdateStamina()
+    {
+        // Corrida
+        isSprinting = sprintAction.IsPressed() && currentState == CharacterState.WALKING && currentStamina > staminaMinToSprint;
+
+        if (isSprinting)
+        {
+            currentStamina -= staminaSprintCost * Time.deltaTime;
+            currentStamina = Mathf.Max(currentStamina, 0);
+            currentState = CharacterState.SPRINTING;
+        }
+        else if (currentState != CharacterState.CLIMBING)
+        {
+            currentStamina += staminaRegenRate * Time.deltaTime;
+        }
+
+        // Escalada
+        if (currentState == CharacterState.CLIMBING)
+        {
+            if (currentStamina <= 0)
+            {
+                isGrabbingWall = false;
+                currentState = CharacterState.FALLING;
+                return;
+            }
+
+            currentStamina -= staminaClimbCost * Time.deltaTime;
+            currentStamina = Mathf.Max(currentStamina, 0);
+        }
+
+        currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
+    }
+    #endregion
+    #endregion
 }
 
 
