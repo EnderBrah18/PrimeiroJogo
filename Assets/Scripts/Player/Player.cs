@@ -16,7 +16,7 @@ public enum CharacterState
     CLIMBING
 }
 
-public class PlayerMovement : MonoBehaviour
+public class Player : MonoBehaviour
 {
 
     public CharacterState currentState = CharacterState.IDLE;
@@ -27,16 +27,17 @@ public class PlayerMovement : MonoBehaviour
     private InputAction jumpAction;
     private InputAction dashAction;
     private InputAction sprintAction;
+    private InputAction interactAction; 
 
     public CharacterController _characterController;
     public Transform cameraTransform;
 
     [Header("Movimentação")]
-    public float turnSpeed = 1f;
-    public float jumpForce = 12f;
-    public float moveSpeed = 1f;
+    public float turnSpeed = 10f;
+    public float jumpForce = 8f;
+    public float moveSpeed = 10f;
     public float vSpeed = 0f;
-    public float gravity = -30f;
+    public float gravity = -9.8f;
 
     private float groundedGraceTime = 0.15f;
     private float lastGroundedTime;
@@ -50,7 +51,7 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask dashCollisionMask;
 
     [Header("Movimento no Ar")]
-    public float airControlMultiplier = 0.5f;
+    public float airControlMultiplier = 0.65f;
     public float airAcceleration = 5f;
     public float airDrag = 2f;
 
@@ -72,6 +73,9 @@ public class PlayerMovement : MonoBehaviour
     public float sprintMultiplier = 1.75f;
     public bool isSprinting = false;
 
+    [Header("Collect")]
+    public float collectRange = 2f;
+
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
     private Coroutine dashRoutine;
@@ -86,6 +90,7 @@ public class PlayerMovement : MonoBehaviour
         jumpAction = playerInput.actions.FindAction("Jump");
         dashAction = playerInput.actions.FindAction("Dash");
         sprintAction = playerInput.actions.FindAction("Sprint");
+        interactAction = playerInput.actions.FindAction("Interact");
 
         currentStamina = maxStamina;
 
@@ -104,6 +109,11 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         finalMovement = Vector3.zero;
+
+        if (interactAction.WasPressedThisFrame())
+        {
+            TryCollect();
+        }
 
         if (_characterController.isGrounded)
         {
@@ -222,6 +232,7 @@ public class PlayerMovement : MonoBehaviour
                 currentHorizontalVelocity = Vector3.Lerp(currentHorizontalVelocity, Vector3.zero, airDrag * Time.deltaTime);
             }
         }
+
     }
 
     void HandleJump()
@@ -389,6 +400,28 @@ public class PlayerMovement : MonoBehaviour
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
     }
     #endregion
+    #endregion
+
+    #region Collect
+    void TryCollect()
+    {
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, collectRange);
+        foreach (var hitCollider in hitColliders)
+        {
+            Collectible collectible = hitCollider.GetComponent<Collectible>();
+            if (collectible != null)
+            {
+                collectible.Collect();
+                break; // coleta apenas um por vez
+            }
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, collectRange);
+    }
     #endregion
 }
 

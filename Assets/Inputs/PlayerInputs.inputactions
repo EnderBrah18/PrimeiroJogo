@@ -240,6 +240,34 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Commands",
+            "id": "8e54987d-0371-4cda-a6cb-cd335b153812",
+            "actions": [
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "675a7927-3e9d-4865-a78b-aae311a44a31",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "f320d036-d2a9-4c29-a5aa-5890f1b48357",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []
