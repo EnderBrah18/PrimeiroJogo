@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -75,6 +76,10 @@ public class Player : MonoBehaviour
 
     [Header("Collect")]
     public float collectRange = 2f;
+    private Collectible _currentCollectible;
+
+    [Header("UI")]
+    public TextMeshProUGUI collectPrompt;
 
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
@@ -110,10 +115,15 @@ public class Player : MonoBehaviour
     {
         finalMovement = Vector3.zero;
 
+        #region CollectUpdate
+        DetectCollectible();
+        UpdatePromptUI();
+
         if (interactAction.WasPressedThisFrame())
         {
             TryCollect();
         }
+        #endregion
 
         if (_characterController.isGrounded)
         {
@@ -403,17 +413,43 @@ public class Player : MonoBehaviour
     #endregion
 
     #region Collect
-    void TryCollect()
+    void DetectCollectible()
     {
+        _currentCollectible = null;
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, collectRange);
         foreach (var hitCollider in hitColliders)
         {
             Collectible collectible = hitCollider.GetComponent<Collectible>();
             if (collectible != null)
             {
-                collectible.Collect();
-                break; // coleta apenas um por vez
+                _currentCollectible = collectible;
+                break;
             }
+        }
+    }
+
+    void TryCollect()
+    {
+        if (_currentCollectible != null)
+        {
+            _currentCollectible.Collect();
+            _currentCollectible = null;
+        }
+    }
+
+    void UpdatePromptUI()
+    {
+        if (collectPrompt == null) return;
+
+        if (_currentCollectible != null)
+        {
+            string keyName = InputDisplayHelper.GetDisplayString(interactAction);
+            collectPrompt.text = $"Pressione <b>{keyName}</b> para coletar {_currentCollectible.itemName}";
+            collectPrompt.gameObject.SetActive(true);
+        }
+        else
+        {
+            collectPrompt.gameObject.SetActive(false);
         }
     }
 
