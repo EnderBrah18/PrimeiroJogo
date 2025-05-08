@@ -13,8 +13,11 @@ public enum ToolType
 [CreateAssetMenu(fileName = "NewTool", menuName = "Tool")]
 public class Tools : ScriptableObject
 {
-    public string nome;
+    public string toolName;
     public ToolType toolType;
     public int level;
     public Sprite icone;
+    public GameObject prefab;
+
+    public float weight = 1f;
 }

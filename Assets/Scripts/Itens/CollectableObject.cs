@@ -9,15 +9,29 @@ public enum CollectableType
     Arvore
 }
 
-public class CollectableObject : MonoBehaviour
+public class CollectableObject : MonoBehaviour, ICollectable
 {
     public string itemName;
     public CollectableType type;
     public ToolType requiredToolType = ToolType.None;
     public int requiredToolLevel = 0;
     public float baseCollectTime = 0f;
+    public Sprite icon;
+
+    private InventorySystem inventory;
+    public float weight = 1f;
+
+    public string GetID() => itemName;
+    public Sprite GetIcon() => icon;
+    public float GetWeight() => weight;
 
     private bool isBeingCollected = false;
+
+
+    private void Start()
+    {
+        inventory = FindObjectOfType<InventorySystem>();
+    }
 
     public bool CanBeCollected(Tools currentTool)
     {
@@ -44,8 +58,17 @@ public class CollectableObject : MonoBehaviour
             {
                 int diff = equippedTool.level - requiredToolLevel;
                 finalTime -= diff * 2f; // Reduz 0.5 segundos por nível extra
-                finalTime = Mathf.Max(0.5f, finalTime); // tempo mínimo de segurança
+                finalTime = Mathf.Max(0.5f, finalTime); // Tempo mínimo de segurança
             }
+
+            // Verificar o peso antes de coletar
+            float itemWeight = (this as ICollectable).GetWeight();
+            if (InventorySystem.Instance.currentWeight + itemWeight > InventorySystem.Instance.maxWeight)
+            {
+                Debug.Log("Inventário cheio, não é possível coletar o item!");
+                return; // Não começa a coleta se o peso máximo for ultrapassado
+            }
+
             Debug.Log($"Tempo de coleta final: {finalTime} segundos");
 
             if (finalTime <= 0f)
@@ -72,8 +95,16 @@ public class CollectableObject : MonoBehaviour
 
     void Collect()
     {
+        // Verificar se o peso máximo foi atingido antes de destruir o objeto
+        float itemWeight = (this as ICollectable).GetWeight();
+        if (InventorySystem.Instance.currentWeight + itemWeight > InventorySystem.Instance.maxWeight)
+        {
+            Debug.Log("O limite de peso foi atingido. O item não será adicionado ao inventário.");
+            return; // Não destruir o objeto ou adicionar ao inventário
+        }
+
         Debug.Log($"Você coletou: {itemName} ({type})");
-        // Aqui você pode: dar item ao inventário, spawnar partículas, tocar som, etc
-        Destroy(gameObject);
+        InventorySystem.Instance.AddCollectable(this); // Adiciona o item ao inventário
+        Destroy(gameObject); // Destrói o objeto coletado
     }
 }
