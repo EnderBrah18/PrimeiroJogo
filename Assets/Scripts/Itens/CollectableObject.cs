@@ -12,7 +12,8 @@ public enum CollectableType
 public class CollectableObject : MonoBehaviour
 {
     public string itemName;
-    public CollectableType tipo;
+    public CollectableType type;
+    //public ToolType requiredTool;
     public float collectTime = 0f;
 
     private bool isBeingCollected = false;
@@ -45,7 +46,7 @@ public class CollectableObject : MonoBehaviour
 
     void Collect()
     {
-        Debug.Log($"Você coletou: {itemName} ({tipo})");
+        Debug.Log($"Você coletou: {itemName} ({type})");
         // Aqui você pode: dar item ao inventário, spawnar partículas, tocar som, etc
         Destroy(gameObject);
     }
