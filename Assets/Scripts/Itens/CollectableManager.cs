@@ -15,6 +15,7 @@ public class CollectableManager : MonoBehaviour
     [SerializeField] private Transform playerTransform;
 
     private CollectableObject current;
+    private Player player;
 
     void Awake()
     {
@@ -24,6 +25,8 @@ public class CollectableManager : MonoBehaviour
             return;
         }
         Instance = this;
+
+        player = playerTransform.GetComponent<Player>();
     }
 
     void Update()
@@ -67,9 +70,16 @@ public class CollectableManager : MonoBehaviour
     {
         if (current != null)
         {
-            current.StartCollect();
+            if (current.CanBeCollected(player.equipedTool))
+            {
+                current.StartCollect(player.equipedTool);
+            }
+            else
+            {
+                Debug.Log("Ferramenta inadequada ou nível muito baixo.");
+                // Aqui você pode mostrar uma mensagem na UI também
+            }
         }
-
     }
 
     public void SetInteractAction(InputAction action)

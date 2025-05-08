@@ -76,6 +76,7 @@ public class Player : MonoBehaviour
 
     [Header("Collect")]
     public float collectRange = 2f;
+    public Tools equipedTool;
 
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
@@ -407,6 +408,12 @@ public class Player : MonoBehaviour
     }
     #endregion
     #endregion
+
+    public void EquiparFerramenta(Tools newTool)
+    {
+        equipedTool = newTool;
+        Debug.Log($"Ferramenta equipada: {newTool.name}");
+    }
 }
 
 
