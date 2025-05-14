@@ -3,16 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
 
-public class InventorySlotUI : MonoBehaviour
+public class InventorySlotUI : MonoBehaviour, IPointerClickHandler
 {
     public Image icon;
     public TextMeshProUGUI quantityText;
     public bool isToolSlot; // Adicione isso
-    public TextMeshProUGUI weightText;
+
+    private InventoryUIManager inventoryUI;
 
     private InventoryItem currentItem;
     private System.Action<InventoryItem> onClickCallback;
+
+    public void SetInventoryUI(InventoryUIManager ui)
+    {
+        inventoryUI = ui;  // Guarda essa referência para usar no clique
+    }
 
     public void SetItem(InventoryItem item, System.Action<InventoryItem> onClick = null)
     {
@@ -20,9 +27,6 @@ public class InventorySlotUI : MonoBehaviour
         icon.sprite = item.collectable?.GetIcon();
         icon.enabled = true;
         quantityText.text = item.quantity.ToString();
-
-        // Exibir o peso do item
-        weightText.text = $"Peso: {item.TotalWeight}kg";
 
         onClickCallback = onClick;
     }
@@ -51,5 +55,13 @@ public class InventorySlotUI : MonoBehaviour
         icon.enabled = false; // Opcional: esconde o ícone
         quantityText.text = "";
         currentItem = null;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.button == PointerEventData.InputButton.Left && currentItem != null)
+        {
+            inventoryUI?.OnItemSelected(currentItem); // Chama o método que ativa o Details Panel
+        }
     }
 }

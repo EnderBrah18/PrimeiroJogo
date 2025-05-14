@@ -23,7 +23,6 @@ public class InventoryUIManager : MonoBehaviour
     public Button equipmentButton;
     public Button menuButton;
 
-    public int minSlotCount = 20;
     public GameObject itemDetailsPanel;
     public Image itemIcon;
     public TextMeshProUGUI itemName;
@@ -71,24 +70,33 @@ public class InventoryUIManager : MonoBehaviour
         foreach (var tool in tools)
         {
             GameObject slotObj = Instantiate(toolSlotPrefab, toolContainer);
-            slotObj.GetComponent<InventorySlotUI>().SetItem(tool);
+            var slotUI = slotObj.GetComponent<InventorySlotUI>();
+            slotUI.SetItem(tool);
+
+            // Passa a referência para este script (InventoryUI)
+            slotUI.SetInventoryUI(this);
+
             toolSlotObjects.Add(slotObj);
         }
 
         // Atualizar slots para itens coletáveis
         foreach (var item in collectables)
         {
-            // Verificar se já existe um slot para este item
             var existingSlot = collectableSlotObjects.Find(slot => slot.GetComponent<InventorySlotUI>().GetItem()?.itemID == item.itemID);
 
             if (existingSlot != null)
             {
-                existingSlot.GetComponent<InventorySlotUI>().SetItem(item); // Atualiza o item no slot existente
+                existingSlot.GetComponent<InventorySlotUI>().SetItem(item);
             }
             else
             {
                 GameObject slotObj = Instantiate(collectableSlotPrefab, collectableContainer);
-                slotObj.GetComponent<InventorySlotUI>().SetItem(item);
+                var slotUI = slotObj.GetComponent<InventorySlotUI>();
+                slotUI.SetItem(item);
+
+                // Passa a referência para este script (InventoryUI)
+                slotUI.SetInventoryUI(this);
+
                 collectableSlotObjects.Add(slotObj);
             }
         }
@@ -110,7 +118,7 @@ public class InventoryUIManager : MonoBehaviour
         menuTab.SetActive(tabName == "menu");
     }
 
-    private void OnItemSelected(InventoryItem item)
+    public void OnItemSelected(InventoryItem item)
     {
         if (itemDetailsPanel != null)
             itemDetailsPanel.SetActive(true);
@@ -121,25 +129,6 @@ public class InventoryUIManager : MonoBehaviour
         itemStats.text = $"Peso: {item.weightPerUnit}\nTotal: {item.TotalWeight}";
     }
 
-    public void EnsureGridSize()
-    {
-        // Verificar quantos slots já existem
-        int requiredSlots = Mathf.Max(20, InventorySystem.Instance.collectableInventory.Count); // No mínimo 20 slots
+    
 
-        while (collectableSlotObjects.Count < requiredSlots)
-        {
-            GameObject slotObj = Instantiate(collectableSlotPrefab, collectableContainer);
-            collectableSlotObjects.Add(slotObj);
-        }
-
-        // Se há slots extras que não estão sendo usados, podemos destruí-los ou manter o grid maior
-        if (collectableSlotObjects.Count > requiredSlots)
-        {
-            for (int i = collectableSlotObjects.Count - 1; i >= requiredSlots; i--)
-            {
-                Destroy(collectableSlotObjects[i]);
-                collectableSlotObjects.RemoveAt(i);
-            }
-        }
-    }
 }
