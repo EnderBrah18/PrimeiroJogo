@@ -8,6 +8,8 @@ public class InventoryItem
     public string itemID;
     public int quantity;
     public float weightPerUnit;
+    public float ItemTotalWeight => weightPerUnit * quantity;
+
     public Tools tool; // Referência à ferramenta, se for uma ferramenta
     public ICollectable collectable; // Referência ao item coletável, se for um coletável
 

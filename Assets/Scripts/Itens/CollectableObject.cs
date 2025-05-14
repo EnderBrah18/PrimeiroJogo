@@ -19,6 +19,7 @@ public class CollectableObject : MonoBehaviour, ICollectable
     public int requiredToolLevel = 0;
     public float baseCollectTime = 0f;
     public Sprite icon;
+    public string description;
 
     private InventorySystem inventory;
     public float weight = 1f;
@@ -26,6 +27,7 @@ public class CollectableObject : MonoBehaviour, ICollectable
     public string GetID() => itemName;
     public Sprite GetIcon() => icon;
     public float GetWeight() => weight;
+    public string GetDescription() => description;
 
     private bool isBeingCollected = false;
 

@@ -125,8 +125,8 @@ public class InventoryUIManager : MonoBehaviour
 
         itemIcon.sprite = item.collectable?.GetIcon();
         itemName.text = item.itemID;
-        itemDescription.text = item.collectable?.GetWeight().ToString();
-        itemStats.text = $"Peso: {item.weightPerUnit}\nTotal: {item.TotalWeight}";
+        itemDescription.text = item.collectable?.GetDescription();
+        itemStats.text = $"Peso por unidade: {item.weightPerUnit}\nPeso total: {item.ItemTotalWeight}";
     }
 
     
