@@ -16,7 +16,7 @@ public class Tools : ScriptableObject
     public string toolName;
     public ToolType toolType;
     public int level;
-    public Sprite icone;
+    public Sprite icon;
     public GameObject prefab;
 
     public float weight = 1f;

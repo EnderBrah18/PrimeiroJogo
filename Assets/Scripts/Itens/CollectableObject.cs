@@ -11,6 +11,8 @@ public enum CollectableType
 
 public class CollectableObject : MonoBehaviour, ICollectable
 {
+    [SerializeField] private InventoryUIManager inventoryUIManager;
+
     public string itemName;
     public CollectableType type;
     public ToolType requiredToolType = ToolType.None;
@@ -105,6 +107,9 @@ public class CollectableObject : MonoBehaviour, ICollectable
 
         Debug.Log($"Você coletou: {itemName} ({type})");
         InventorySystem.Instance.AddCollectable(this); // Adiciona o item ao inventário
+                                                       
+        if (inventoryUIManager.gameObject.activeInHierarchy)
+            inventoryUIManager.UpdateUI(); // Atualiza a UI apenas se estiver ativa
         Destroy(gameObject); // Destrói o objeto coletado
     }
 }

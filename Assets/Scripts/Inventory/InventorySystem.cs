@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class InventorySystem : MonoBehaviour
 {
     public static InventorySystem Instance;
+    public UnityEvent onInventoryChanged;
 
     public ItemDatabase itemDatabase;
     public List<InventoryItem> toolInventory = new List<InventoryItem>();
@@ -15,7 +17,6 @@ public class InventorySystem : MonoBehaviour
 
     private void Awake()
     {
-
         if (Instance == null)
         {
             Instance = this;
@@ -24,13 +25,11 @@ public class InventorySystem : MonoBehaviour
         else
         {
             Debug.LogError("Uma instância do InventorySystem já existe!");
-            Destroy(gameObject); // Não deixa outro InventorySystem ser criado
+            Destroy(gameObject);
         }
 
-        if (Instance == null)
-        {
-            Debug.LogError("InventorySystem não foi inicializado corretamente.");
-        }
+        if (onInventoryChanged == null)
+            onInventoryChanged = new UnityEvent();
     }
 
     public void AddTool(Tools tool)
@@ -42,6 +41,8 @@ public class InventorySystem : MonoBehaviour
             existing.quantity++; // Se já existir, aumenta a quantidade
         else
             toolInventory.Add(new InventoryItem(tool)); // Caso contrário, adiciona como um novo item
+
+        onInventoryChanged.Invoke(); // <- Aqui!
     }
 
     public void AddCollectable(ICollectable collectable)
@@ -67,6 +68,8 @@ public class InventorySystem : MonoBehaviour
             collectableInventory.Add(new InventoryItem(collectable)); // Caso contrário, adiciona como novo item
 
         currentWeight += itemWeight;
+
+        onInventoryChanged.Invoke(); // <- Aqui!
     }
 }
 
