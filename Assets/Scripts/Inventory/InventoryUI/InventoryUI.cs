@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Unity.VisualScripting;
 
 public class InventoryUI : MonoBehaviour
 {
@@ -30,6 +29,13 @@ public class InventoryUI : MonoBehaviour
 
         InitializeSlots(toolGridParent, toolSlots);
         InitializeSlots(collectableGridParent, collectableSlots);
+    }
+
+    private void Start()
+    {
+
+        toolTab.SetActive(false);
+        collectableTab.SetActive(true);
     }
 
     // Inicializa os slots fixos no grid e armazena as referências
