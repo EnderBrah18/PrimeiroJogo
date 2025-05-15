@@ -71,6 +71,72 @@ public class InventorySystem : MonoBehaviour
 
         onInventoryChanged.Invoke(); // <- Aqui!
     }
+
+    public void SwapInventoryItems(InventoryItem itemA, InventoryItem itemB)
+    {
+        // Procura a posição dos itens na lista correta e troca eles
+
+        if (itemA == null && itemB == null) return;
+
+        // Verifica se são ferramentas ou coletáveis
+        bool itemAIsTool = itemA != null && itemA.IsTool();
+        bool itemBIsTool = itemB != null && itemB.IsTool();
+
+        // Para facilitar, copia listas temporárias
+        var toolInv = toolInventory;
+        var colInv = collectableInventory;
+
+        // Posições dos itens
+        int indexA = -1, indexB = -1;
+
+        if (itemAIsTool)
+            indexA = toolInv.IndexOf(itemA);
+        else if (itemA != null)
+            indexA = colInv.IndexOf(itemA);
+
+        if (itemBIsTool)
+            indexB = toolInv.IndexOf(itemB);
+        else if (itemB != null)
+            indexB = colInv.IndexOf(itemB);
+
+        // Se ambos são ferramentas
+        if (itemAIsTool && itemBIsTool)
+        {
+            if (indexA >= 0 && indexB >= 0)
+            {
+                toolInv[indexA] = itemB;
+                toolInv[indexB] = itemA;
+            }
+        }
+        // Se ambos são coletáveis
+        else if (!itemAIsTool && !itemBIsTool)
+        {
+            if (indexA >= 0 && indexB >= 0)
+            {
+                colInv[indexA] = itemB;
+                colInv[indexB] = itemA;
+            }
+        }
+        else
+        {
+            // Se são diferentes tipos (tool e collectable), troca entre as listas
+            if (indexA >= 0 && indexB >= 0)
+            {
+                if (itemAIsTool)
+                {
+                    toolInv[indexA] = itemB;
+                    colInv[indexB] = itemA;
+                }
+                else
+                {
+                    colInv[indexA] = itemB;
+                    toolInv[indexB] = itemA;
+                }
+            }
+        }
+
+        onInventoryChanged.Invoke(); // Atualiza UI
+    }
 }
 
 

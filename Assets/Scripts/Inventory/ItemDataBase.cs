@@ -5,10 +5,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "ItemDatabase", menuName = "Inventory/Database")]
 public class ItemDatabase : ScriptableObject
 {
-    public List<Tools> allTools;
-
-    public Tools GetToolByID(string id)
-    {
-        return allTools.Find(t => t.toolName == id);
-    }
+    public string itemName;
+    public string description;
+    public Sprite icon;
+    public int weight;
+    public int quantity;
 }
+
