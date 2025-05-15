@@ -492,7 +492,7 @@ MonoBehaviour:
   requiredToolLevel: 2
   baseCollectTime: 3
   icon: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
-  description: 
+  description: Flor Rosa
   weight: 1
 --- !u!1 &53661814
 GameObject:
@@ -2407,7 +2407,7 @@ MonoBehaviour:
   requiredToolLevel: 2
   baseCollectTime: 3
   icon: {fileID: 0}
-  description: 
+  description: "Ela \xE9 azul"
   weight: 1
 --- !u!65 &805524289
 BoxCollider:
@@ -3396,7 +3396,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1061009146}
   - component: {fileID: 1061009147}
-  - component: {fileID: 1061009148}
   - component: {fileID: 1061009149}
   - component: {fileID: 1061009150}
   m_Layer: 0
@@ -3433,28 +3432,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39e90f606e0231340ba5b9534de15b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemDatabase: {fileID: 11400000, guid: 22796ef8712fbb54285926933a8e9703, type: 2}
-  toolInventory: []
-  collectableInventory: []
-  maxWeight: 100
-  currentWeight: 0
---- !u!114 &1061009148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1061009145}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 604bc93f95f63a34fa6b7a6e15233b35, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
   slotsParent: {fileID: 233613857}
   slotPrefab: {fileID: 728839410661014244, guid: d6611e59ce827f84789b9d71548265f5, type: 3}
-  slotList: []
   maxSlots: 20
   inventoryPanel: {fileID: 1657284065}
+  maxWeight: 100
+  currentWeight: 0
 --- !u!114 &1061009149
 MonoBehaviour:
   m_ObjectHideFlags: 0

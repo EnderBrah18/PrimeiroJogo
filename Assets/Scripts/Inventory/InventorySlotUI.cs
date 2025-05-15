@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
+using static UnityEditor.Progress;
 
 public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
@@ -29,6 +30,7 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         icon.sprite = item.GetIcon();
         icon.enabled = true;
         quantityText.text = item.quantity.ToString();
+        RefreshSlotUI();
     }
 
     public void Clear()
@@ -37,6 +39,17 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         icon.sprite = null;
         icon.enabled = false;
         quantityText.text = "";
+        RefreshSlotUI();
+    }
+
+    public InventoryItem GetItem()
+    {
+        return currentItem;
+    }
+
+    public bool HasItem()
+    {
+        return currentItem != null;
     }
 
     public InventoryItem GetCurrentItem()
@@ -56,6 +69,20 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         else
         {
             Clear();
+        }
+    }
+
+    public void RefreshSlotUI()
+    {
+        if (currentItem != null)
+        {
+            // Atualiza ícone, quantidade, etc.
+            // Exemplo: iconImage.sprite = item.icon;
+            // quantidadeText.text = item.quantity.ToString();
+        }
+        else
+        {
+            // Limpa slot visualmente
         }
     }
 

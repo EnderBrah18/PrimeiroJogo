@@ -7,9 +7,14 @@ public class InventorySystem : MonoBehaviour
 {
     public static InventorySystem Instance;
 
-    public ItemDatabase itemDatabase;
-    public List<InventoryItem> toolInventory = new List<InventoryItem>();
-    public List<InventoryItem> collectableInventory = new List<InventoryItem>();
+    [Header("UI")]
+    public Transform slotsParent;       // Painel com os slots
+    public GameObject slotPrefab;       // Prefab do slot
+    public int maxSlots = 20;
+
+    [SerializeField] private GameObject inventoryPanel;
+
+    private List<InventorySlotUI> slotList = new List<InventorySlotUI>();
 
     public float maxWeight = 100f;
     public float currentWeight = 0f;
@@ -20,119 +25,97 @@ public class InventorySystem : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            SetupSlots();
+            RefreshUI();
+            inventoryPanel.SetActive(false);
         }
         else
         {
             Debug.LogError("Uma instância do InventorySystem já existe!");
             Destroy(gameObject);
         }
+    }
 
+    private void SetupSlots()
+    {
+        for (int i = 0; i < maxSlots; i++)
+        {
+            GameObject slotGO = Instantiate(slotPrefab, slotsParent);
+            InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
+            slotUI.Clear();  // Começa vazio
+            slotList.Add(slotUI);
+        }
     }
 
     public void AddTool(Tools tool)
     {
-        // Verifica se a ferramenta já está no inventário
-        var existing = toolInventory.Find(i => i.IsTool() && i.tool.toolName == tool.toolName);
+        // Procura slot que já contenha essa ferramenta
+        InventorySlotUI existingSlot = slotList.Find(s => s.HasItem() && s.GetItem().IsTool() && s.GetItem().tool.toolName == tool.toolName);
 
-        if (existing != null)
-            existing.quantity++; // Se já existir, aumenta a quantidade
+        if (existingSlot != null)
+        {
+            existingSlot.GetItem().quantity++;
+        }
         else
-            toolInventory.Add(new InventoryItem(tool)); // Caso contrário, adiciona como um novo item
+        {
+            InventorySlotUI emptySlot = slotList.Find(s => !s.HasItem());
+            if (emptySlot != null)
+            {
+                emptySlot.Set(new InventoryItem(tool));
+            }
+            else
+            {
+                Debug.Log("Inventário cheio!");
+                return;
+            }
+        }
 
+        RefreshUI();
     }
 
     public void AddCollectable(ICollectable collectable)
     {
-
-        // Obter o peso do item coletável
         float itemWeight = (collectable as CollectableObject)?.weight ?? 0f;
 
-        // Verificar se o peso não ultrapassa o limite
         if (currentWeight + itemWeight > maxWeight)
         {
             Debug.Log("Peso máximo atingido! Não é possível carregar mais itens.");
             return;
         }
 
-        Debug.Log($"Tentando adicionar item: {collectable.GetID()} com peso {itemWeight}kg.");
+        // Procura slot que já contenha esse coletável
+        InventorySlotUI existingSlot = slotList.Find(s => s.HasItem() && s.GetItem().IsCollectable() && s.GetItem().collectable.GetID() == collectable.GetID());
 
-        var existing = collectableInventory.Find(i => i.IsCollectable() && i.collectable.GetID() == collectable.GetID());
-
-        if (existing != null)
-            existing.quantity++; // Se o item já estiver no inventário, aumenta a quantidade
+        if (existingSlot != null)
+        {
+            existingSlot.GetItem().quantity++;
+        }
         else
-            collectableInventory.Add(new InventoryItem(collectable)); // Caso contrário, adiciona como novo item
+        {
+            InventorySlotUI emptySlot = slotList.Find(s => !s.HasItem());
+            if (emptySlot != null)
+            {
+                emptySlot.Set(new InventoryItem(collectable));
+            }
+            else
+            {
+                Debug.Log("Inventário cheio!");
+                return;
+            }
+        }
 
         currentWeight += itemWeight;
-
-        // Atualiza a UI aqui
-        InventoryUIManager.Instance.RefreshUI(collectableInventory);
-
+        RefreshUI();
     }
 
-    public void SwapInventoryItems(InventoryItem itemA, InventoryItem itemB)
+    public void RefreshUI()
     {
-        // Procura a posição dos itens na lista correta e troca eles
-
-        if (itemA == null && itemB == null) return;
-
-        // Verifica se são ferramentas ou coletáveis
-        bool itemAIsTool = itemA != null && itemA.IsTool();
-        bool itemBIsTool = itemB != null && itemB.IsTool();
-
-        // Para facilitar, copia listas temporárias
-        var toolInv = toolInventory;
-        var colInv = collectableInventory;
-
-        // Posições dos itens
-        int indexA = -1, indexB = -1;
-
-        if (itemAIsTool)
-            indexA = toolInv.IndexOf(itemA);
-        else if (itemA != null)
-            indexA = colInv.IndexOf(itemA);
-
-        if (itemBIsTool)
-            indexB = toolInv.IndexOf(itemB);
-        else if (itemB != null)
-            indexB = colInv.IndexOf(itemB);
-
-        // Se ambos são ferramentas
-        if (itemAIsTool && itemBIsTool)
+        for (int i = 0; i < slotList.Count; i++)
         {
-            if (indexA >= 0 && indexB >= 0)
-            {
-                toolInv[indexA] = itemB;
-                toolInv[indexB] = itemA;
-            }
+            slotList[i].index = i;
+            slotList[i].RefreshSlotUI();
         }
-        // Se ambos são coletáveis
-        else if (!itemAIsTool && !itemBIsTool)
-        {
-            if (indexA >= 0 && indexB >= 0)
-            {
-                colInv[indexA] = itemB;
-                colInv[indexB] = itemA;
-            }
-        }
-        else
-        {
-            // Se são diferentes tipos (tool e collectable), troca entre as listas
-            if (indexA >= 0 && indexB >= 0)
-            {
-                if (itemAIsTool)
-                {
-                    toolInv[indexA] = itemB;
-                    colInv[indexB] = itemA;
-                }
-                else
-                {
-                    colInv[indexA] = itemB;
-                    toolInv[indexB] = itemA;
-                }
-            }
-        }
-
     }
 }
 
