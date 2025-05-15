@@ -6,7 +6,6 @@ using UnityEngine.Events;
 public class InventorySystem : MonoBehaviour
 {
     public static InventorySystem Instance;
-    public UnityEvent onInventoryChanged;
 
     public ItemDatabase itemDatabase;
     public List<InventoryItem> toolInventory = new List<InventoryItem>();
@@ -28,8 +27,6 @@ public class InventorySystem : MonoBehaviour
             Destroy(gameObject);
         }
 
-        if (onInventoryChanged == null)
-            onInventoryChanged = new UnityEvent();
     }
 
     public void AddTool(Tools tool)
@@ -42,7 +39,6 @@ public class InventorySystem : MonoBehaviour
         else
             toolInventory.Add(new InventoryItem(tool)); // Caso contrário, adiciona como um novo item
 
-        onInventoryChanged.Invoke(); // <- Aqui!
     }
 
     public void AddCollectable(ICollectable collectable)
@@ -69,7 +65,9 @@ public class InventorySystem : MonoBehaviour
 
         currentWeight += itemWeight;
 
-        onInventoryChanged.Invoke(); // <- Aqui!
+        // Atualiza a UI aqui
+        InventoryUIManager.Instance.RefreshUI(collectableInventory);
+
     }
 
     public void SwapInventoryItems(InventoryItem itemA, InventoryItem itemB)
@@ -135,7 +133,6 @@ public class InventorySystem : MonoBehaviour
             }
         }
 
-        onInventoryChanged.Invoke(); // Atualiza UI
     }
 }
 

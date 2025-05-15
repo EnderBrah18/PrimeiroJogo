@@ -31,6 +31,9 @@ public class InventoryItem
 
     public float TotalWeight => weightPerUnit * quantity;
 
+    public string GetID() => collectable.GetID();
+    public Sprite GetIcon() => collectable.GetIcon(); // supondo que tenha
+
     public bool IsTool() => tool != null;
     public bool IsCollectable() => collectable != null;
 }

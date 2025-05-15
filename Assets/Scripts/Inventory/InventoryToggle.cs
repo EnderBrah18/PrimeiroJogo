@@ -4,42 +4,34 @@ using UnityEngine;
 
 public class InventoryToggle : MonoBehaviour
 {
-    public GameObject inventoryUI; // Referência ao painel do inventário
+    public GameObject inventoryPanel; // O painel com seus slots
     private bool isInventoryOpen = false;
 
-    void Update()
+    private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            if (isInventoryOpen)
-                CloseInventory();
-            else
-                OpenInventory();
+            ToggleInventory();
         }
     }
 
-    public void OpenInventory()
+    public void ToggleInventory()
     {
-        isInventoryOpen = true;
-        inventoryUI.SetActive(true);
+        isInventoryOpen = !isInventoryOpen;
 
-        // Atualiza a interface
-        InventoryUI.Instance.RefreshUI();
+        inventoryPanel.SetActive(isInventoryOpen);
 
-        // Pausa o jogo e libera o mouse
-        Time.timeScale = 0f;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
-
-    public void CloseInventory()
-    {
-        isInventoryOpen = false;
-        inventoryUI.SetActive(false);
-
-        // Volta ao jogo
-        Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (isInventoryOpen)
+        {
+            Cursor.lockState = CursorLockMode.None; // Libera o cursor
+            Cursor.visible = true;
+            Time.timeScale = 0f; // Pausa o jogo
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked; // Trava o cursor no centro
+            Cursor.visible = false;
+            Time.timeScale = 1f; // Retoma o jogo
+        }
     }
 }
