@@ -22,8 +22,7 @@ public class InventoryUI : MonoBehaviour
 
     private List<InventorySlot> toolSlots = new List<InventorySlot>();
     private List<InventorySlot> collectableSlots = new List<InventorySlot>();
-
-    private int baseSlotCount = 20;
+        
 
     private void Awake()
     {
@@ -38,17 +37,7 @@ public class InventoryUI : MonoBehaviour
     {
         slotList.Clear();
 
-        // Verifica se já existem filhos no grid (slots pré-definidos no editor)
-        int existingSlots = parent.childCount;
-
-        // Se tem menos que baseSlotCount, cria slots para completar
-        for (int i = existingSlots; i < baseSlotCount; i++)
-        {
-            GameObject slotGO = Instantiate(slotPrefab, parent);
-            slotGO.name = "Slot " + i;
-        }
-
-        // Adiciona todos os filhos (slots) à lista para fácil acesso
+        // Apenas adiciona os slots que já existem no editor, se houver
         foreach (Transform child in parent)
         {
             var slot = child.GetComponent<InventorySlot>();
@@ -59,36 +48,31 @@ public class InventoryUI : MonoBehaviour
 
     public void RefreshUI()
     {
-        // Preenche os slots de ferramentas
-        FillSlots(toolSlots, InventorySystem.Instance.toolInventory);
-
-        // Preenche os slots de coletáveis
-        FillSlots(collectableSlots, InventorySystem.Instance.collectableInventory);
+        FillSlots(toolSlots, InventorySystem.Instance.toolInventory, toolGridParent);
+        FillSlots(collectableSlots, InventorySystem.Instance.collectableInventory, collectableGridParent);
     }
 
     // Preenche os slots já existentes com os itens e adiciona slots extras se necessário
-    void FillSlots(List<InventorySlot> slots, List<InventoryItem> items)
+    void FillSlots(List<InventorySlot> slots, List<InventoryItem> items, Transform parentTransform)
     {
-        int i = 0;
-        // Preenche slots existentes
-        for (; i < slots.Count && i < items.Count; i++)
+        // Cria slots até ter o suficiente
+        while (slots.Count < items.Count)
+        {
+            GameObject slotGO = Instantiate(slotPrefab, parentTransform);
+            slotGO.name = "Slot " + slots.Count;
+            var slot = slotGO.GetComponent<InventorySlot>();
+            slots.Add(slot);
+        }
+
+        // Preenche os slots com itens
+        for (int i = 0; i < items.Count; i++)
         {
             slots[i].SetItem(items[i]);
             slots[i].gameObject.SetActive(true);
         }
 
-        // Se ainda tiver itens para mostrar, cria mais slots dinamicamente
-        for (; i < items.Count; i++)
-        {
-            GameObject slotGO = Instantiate(slotPrefab, slots[0].transform.parent);
-            slotGO.name = "Slot " + i;
-            var slot = slotGO.GetComponent<InventorySlot>();
-            slot.SetItem(items[i]);
-            slots.Add(slot);
-        }
-
-        // Desativa slots excedentes (quando tiver menos itens que slots)
-        for (; i < slots.Count; i++)
+        // Limpa e desativa slots extras
+        for (int i = items.Count; i < slots.Count; i++)
         {
             slots[i].ClearSlot();
             slots[i].gameObject.SetActive(false);
