@@ -113,10 +113,6 @@ public class Player : MonoBehaviour
     private void Update()
     {
 
-        if (FindObjectOfType<InventoryToogle>().IsInventoryOpen())
-            return;
-
-
         finalMovement = Vector3.zero;
 
         #region CollectUpdate
