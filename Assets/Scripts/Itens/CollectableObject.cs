@@ -72,6 +72,9 @@ public class CollectableObject : MonoBehaviour, ICollectable
                 return; // Não começa a coleta se o peso máximo for ultrapassado
             }
 
+            if (!InventorySystem.Instance.TryAddToSlot(this as ICollectable))
+                return;
+
             Debug.Log($"Tempo de coleta final: {finalTime} segundos");
 
             if (finalTime <= 0f)

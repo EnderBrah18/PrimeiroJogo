@@ -7,6 +7,8 @@ public class InventoryToggle : MonoBehaviour
 {
     public GameObject inventoryPanel; // O painel com seus slots
     public ItemInfoPanel itemInfoPanel;
+    public GameObject resourcePanel;
+    public GameObject equipmentPanel;
     private bool isInventoryOpen = false;
 
     private void Update()
@@ -37,5 +39,17 @@ public class InventoryToggle : MonoBehaviour
             Cursor.visible = false;
             Time.timeScale = 1f; // Retoma o jogo
         }
+    }
+
+    public void OpenResourceTab()
+    {
+        resourcePanel.SetActive(true);
+        equipmentPanel.SetActive(false);
+    }
+
+    public void OpenEquipmentTab()
+    {
+        resourcePanel.SetActive(false);
+        equipmentPanel.SetActive(true);
     }
 }

@@ -78,32 +78,6 @@ public class InventorySystem : MonoBehaviour
     {
         float itemWeight = (collectable as CollectableObject)?.weight ?? 0f;
 
-        if (currentWeight + itemWeight > maxWeight)
-        {
-            Debug.Log("Peso máximo atingido! Não é possível carregar mais itens.");
-            return;
-        }
-
-        // Procura slot que já contenha esse coletável
-        InventorySlotUI existingSlot = slotList.Find(s => s.HasItem() && s.GetItem().IsCollectable() && s.GetItem().collectable.GetID() == collectable.GetID());
-
-        if (existingSlot != null)
-        {
-            existingSlot.GetItem().quantity++;
-        }
-        else
-        {
-            InventorySlotUI emptySlot = slotList.Find(s => !s.HasItem());
-            if (emptySlot != null)
-            {
-                emptySlot.Set(new InventoryItem(collectable));
-            }
-            else
-            {
-                Debug.Log("Inventário cheio!");
-                return;
-            }
-        }
 
         currentWeight += itemWeight;
         RefreshUI();
@@ -116,6 +90,32 @@ public class InventorySystem : MonoBehaviour
             slotList[i].index = i;
             slotList[i].RefreshSlotUI();
         }
+    }
+
+    public bool TryAddToSlot(ICollectable collectable)
+    {
+        // Procura slot com o mesmo item (empilhável)
+        InventorySlotUI existingSlot = slotList.Find(s =>
+            s.HasItem() &&
+            s.GetItem().IsCollectable() &&
+            s.GetItem().collectable.GetID() == collectable.GetID());
+
+        if (existingSlot != null)
+        {
+            existingSlot.GetItem().quantity++;
+            return true;
+        }
+
+        // Caso não haja stack, procura slot vazio
+        InventorySlotUI emptySlot = slotList.Find(s => !s.HasItem());
+        if (emptySlot != null)
+        {
+            emptySlot.Set(new InventoryItem(collectable));
+            return true;
+        }
+
+        Debug.Log("Inventário cheio!");
+        return false;
     }
 }
 
