@@ -14,6 +14,7 @@ public class InventoryUIManager : MonoBehaviour
     public int maxSlots = 20;
     [SerializeField] private GameObject inventoryPanel;
 
+
     private void Awake()
     {
         inventoryPanel.SetActive(true);

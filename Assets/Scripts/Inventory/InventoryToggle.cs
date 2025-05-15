@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 
 public class InventoryToggle : MonoBehaviour
 {
     public GameObject inventoryPanel; // O painel com seus slots
+    public ItemInfoPanel itemInfoPanel;
     private bool isInventoryOpen = false;
 
     private void Update()
@@ -20,6 +22,8 @@ public class InventoryToggle : MonoBehaviour
         isInventoryOpen = !isInventoryOpen;
 
         inventoryPanel.SetActive(isInventoryOpen);
+
+        
 
         if (isInventoryOpen)
         {

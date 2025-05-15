@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 
-public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
     public Image icon;
     public TextMeshProUGUI quantityText;
@@ -56,6 +56,18 @@ public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         else
         {
             Clear();
+        }
+    }
+
+    // Evento para informar o item selecionado
+    public delegate void OnItemSelectedDelegate(InventoryItem item);
+    public static event OnItemSelectedDelegate OnItemSelected;
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (currentItem != null)
+        {
+            OnItemSelected?.Invoke(currentItem);
         }
     }
 
