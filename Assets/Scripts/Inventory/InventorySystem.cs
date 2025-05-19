@@ -14,7 +14,7 @@ public class InventorySystem : MonoBehaviour
 
     [SerializeField] private GameObject inventoryPanel;
 
-    private List<InventorySlotUI> slotList = new List<InventorySlotUI>();
+    public List<InventorySlotUI> slotList = new List<InventorySlotUI>();
 
     public float maxWeight = 100f;
     public float currentWeight = 0f;

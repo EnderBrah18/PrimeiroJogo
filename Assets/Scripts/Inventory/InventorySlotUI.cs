@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
-using static UnityEditor.Progress;
 
 public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
@@ -151,16 +150,15 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
 
     public void OnDrop(PointerEventData eventData)
     {
-        InventorySlotUI draggedSlot = eventData.pointerDrag.GetComponent<InventorySlotUI>();
-
-        if (draggedSlot == null) return;
+        InventorySlotUI draggedSlot = eventData.pointerDrag?.GetComponent<InventorySlotUI>();
+        if (draggedSlot == null || draggedSlot == this) return;
 
         InventoryItem draggedItem = draggedSlot.GetCurrentItem();
         InventoryItem thisItem = this.GetCurrentItem();
 
-        // Trocar os itens entre os slots
-        this.SetCurrentItem(draggedItem);
+        // Swap entre os dois slots
         draggedSlot.SetCurrentItem(thisItem);
+        this.SetCurrentItem(draggedItem);
     }
 
     private void UpdateDragIconPosition(PointerEventData eventData)
