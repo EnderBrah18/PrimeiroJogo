@@ -8,7 +8,6 @@ public class ChestInteraction : MonoBehaviour
 
     [Header("Referências")]
     public GameObject chestCanvas;               // Canvas com as UIs do baú e inventário do jogador
-    public KeyCode interactionKey = KeyCode.E;  // Tecla para abrir/fechar o baú
     public GameObject inventoryUI;
 
     [SerializeField] private Transform painelRecursos;
