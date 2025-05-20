@@ -25,19 +25,18 @@ public class InventoryToggle : MonoBehaviour
 
         inventoryPanel.SetActive(isInventoryOpen);
 
-        
-
         if (isInventoryOpen)
         {
-            Cursor.lockState = CursorLockMode.None; // Libera o cursor
+            RestaurarTodosFilhosDoInventario(); // <-- Aqui
+            Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-            Time.timeScale = 0f; // Pausa o jogo
+            Time.timeScale = 0f;
         }
         else
         {
-            Cursor.lockState = CursorLockMode.Locked; // Trava o cursor no centro
+            Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-            Time.timeScale = 1f; // Retoma o jogo
+            Time.timeScale = 1f;
         }
     }
 
@@ -51,5 +50,18 @@ public class InventoryToggle : MonoBehaviour
     {
         resourcePanel.SetActive(false);
         equipmentPanel.SetActive(true);
+    }
+
+    private void RestaurarTodosFilhosDoInventario()
+    {
+        foreach (Transform filho in resourcePanel.transform)
+        {
+            filho.gameObject.SetActive(true);
+        }
+
+        foreach (Transform filho in equipmentPanel.transform)
+        {
+            filho.gameObject.SetActive(true);
+        }
     }
 }

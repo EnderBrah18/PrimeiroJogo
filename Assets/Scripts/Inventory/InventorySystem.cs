@@ -13,6 +13,7 @@ public class InventorySystem : MonoBehaviour
     public int maxSlots = 20;
 
     [SerializeField] private GameObject inventoryPanel;
+    [SerializeField] private InventoryWeighUI inventoryWeighUI;
 
     public List<InventorySlotUI> slotList = new List<InventorySlotUI>();
 
@@ -43,8 +44,10 @@ public class InventorySystem : MonoBehaviour
         {
             GameObject slotGO = Instantiate(slotPrefab, slotsParent);
             InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Clear();  // Começa vazio
+            slotUI.Clear();
             slotList.Add(slotUI);
+            slotUI.inventorySystem = this;
+            slotUI.chestInventory = null;
         }
     }
 
@@ -83,6 +86,35 @@ public class InventorySystem : MonoBehaviour
         RefreshUI();
     }
 
+    public void RemoveItem(InventoryItem item)
+    {
+        if (item == null) return;
+
+        float itemWeight = 0f;
+
+        if (item.IsCollectable())
+        {
+            var collectable = item.collectable as CollectableObject;
+            if (collectable != null)
+            {
+                itemWeight = collectable.weight;
+            }
+        }
+
+        // Atualiza peso total
+        currentWeight -= itemWeight;
+        if (currentWeight < 0f) currentWeight = 0f;
+
+        // Remove o item de seu slot
+        InventorySlotUI slot = slotList.Find(s => s.HasItem() && s.GetItem() == item);
+        if (slot != null)
+        {
+            slot.Clear();
+        }
+
+        RefreshUI();
+    }
+
     public void RefreshUI()
     {
         for (int i = 0; i < slotList.Count; i++)
@@ -90,10 +122,20 @@ public class InventorySystem : MonoBehaviour
             slotList[i].index = i;
             slotList[i].RefreshSlotUI();
         }
+
+        Debug.Log($"RefreshUI - Peso Atual: {currentWeight} / {maxWeight}");
+
+        // Atualiza o texto do peso
+        if (inventoryWeighUI.weightText != null)
+        {
+            inventoryWeighUI.weightText.text = $"Peso: {currentWeight}/{maxWeight}";
+        }
     }
 
     public bool TryAddToSlot(ICollectable collectable)
     {
+        Debug.Log($"TryAddToSlot chamado para coletável {collectable.GetID()} - Stack possível? {slotList.Exists(s => s.HasItem() && s.GetItem().collectable.GetID() == collectable.GetID())}");
+
         // Procura slot com o mesmo item (empilhável)
         InventorySlotUI existingSlot = slotList.Find(s =>
             s.HasItem() &&
@@ -116,6 +158,34 @@ public class InventorySystem : MonoBehaviour
 
         Debug.Log("Inventário cheio!");
         return false;
+    }
+
+    public void RecalculateWeight()
+    {
+        float newWeight = 0f;
+
+        foreach (var slot in slotList)
+        {
+            if (slot.HasItem())
+            {
+                InventoryItem item = slot.GetItem();
+                if (item.IsCollectable())
+                {
+                    var collectable = item.collectable as CollectableObject;
+                    if (collectable != null)
+                    {
+                        newWeight += collectable.weight * item.quantity;
+                    }
+                }
+                else if (item.IsTool())
+                {
+                    // Se quiser contar peso das ferramentas, faça aqui (exemplo):
+                    // newWeight += item.tool.weight * item.quantity;
+                }
+            }
+        }
+
+        currentWeight = newWeight;
     }
 }
 

@@ -77,6 +77,7 @@ public class Player : MonoBehaviour
     [Header("Collect")]
     public float collectRange = 2f;
     public Tools equipedTool;
+    public ChestInteraction chestInteraction;
 
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
@@ -120,6 +121,11 @@ public class Player : MonoBehaviour
         if (interactAction.WasPressedThisFrame())
         {
             CollectableManager.Instance.TryCollect();
+        }
+
+        if (chestInteraction.playerInRange && interactAction.WasPressedThisFrame())
+        {
+            chestInteraction.ToggleChestUI();
         }
         #endregion
 

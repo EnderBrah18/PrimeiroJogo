@@ -12,10 +12,13 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
     public int index; // posição do slot no inventário
 
     private InventoryItem currentItem;
+    public InventorySystem inventorySystem;
+    public ChestInventory chestInventory;
 
     private GameObject dragIconObj;
     private RectTransform dragIconRect;
     private Canvas canvas;
+
 
     private void Awake()
     {
@@ -146,6 +149,7 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         {
             Destroy(dragIconObj);
         }
+
     }
 
     public void OnDrop(PointerEventData eventData)
@@ -156,9 +160,34 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         InventoryItem draggedItem = draggedSlot.GetCurrentItem();
         InventoryItem thisItem = this.GetCurrentItem();
 
-        // Swap entre os dois slots
+        // Troca os itens nos slots
         draggedSlot.SetCurrentItem(thisItem);
         this.SetCurrentItem(draggedItem);
+
+        // Atualiza peso apenas se slot pertence ao InventorySystem
+        if (inventorySystem != null)
+        {
+            inventorySystem.RecalculateWeight();
+            inventorySystem.RefreshUI();
+        }
+
+        // Se o draggedSlot pertence ao inventário também, atualize ele
+        if (draggedSlot.inventorySystem != null)
+        {
+            draggedSlot.inventorySystem.RecalculateWeight();
+            draggedSlot.inventorySystem.RefreshUI();
+        }
+    }
+
+    private float GetItemWeight(InventoryItem item)
+    {
+        if (item.IsCollectable())
+        {
+            var collectable = item.collectable as CollectableObject;
+            if (collectable != null)
+                return collectable.weight * item.quantity;
+        }
+        return 0f;
     }
 
     private void UpdateDragIconPosition(PointerEventData eventData)
