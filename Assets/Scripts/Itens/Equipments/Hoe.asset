@@ -10,11 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17756f92cf37c55468575aad8d5af175, type: 3}
-  m_Name: Pickaxe
+  m_Name: Hoe
   m_EditorClassIdentifier: 
-  toolName: 
-  toolType: 2
-  level: 2
-  icone: {fileID: 0}
-  prefab: {fileID: 0}
+  equipmentName: Enxada da Morte
+  rarity: 5
+  level: 3
+  description: "Uma enxada que tr\xE1z a morte."
+  icon: {fileID: 0}
   weight: 1
+  toolType: 3
+  prefab: {fileID: 0}
+  statusModifiers:
+  - statName: CollectSpeed
+    value: 5

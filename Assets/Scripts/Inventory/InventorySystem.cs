@@ -11,12 +11,19 @@ public class InventorySystem : MonoBehaviour
     public Transform slotsParent;       // Painel com os slots
     public GameObject slotPrefab;       // Prefab do slot
     public int maxSlots = 20;
-
     [SerializeField] private GameObject inventoryPanel;
-    [SerializeField] private InventoryWeighUI inventoryWeighUI;
 
     public List<InventorySlotUI> slotList = new List<InventorySlotUI>();
+    public List<EquipmentSlotUI> equipmentSlotList = new List<EquipmentSlotUI>(); // slots equipamento
 
+    [Header("UI - Equipamentos")]
+    public Transform equipmentSlotsParent; // Novo painel com os slots de equipamento
+    public GameObject equipmentSlotPrefab;
+    public int maxEquipmentSlots = 10;
+
+
+    [Header("WeightUI")]
+    [SerializeField] private InventoryWeighUI inventoryWeighUI;
     public float maxWeight = 100f;
     public float currentWeight = 0f;
 
@@ -28,6 +35,8 @@ public class InventorySystem : MonoBehaviour
             DontDestroyOnLoad(gameObject);
 
             SetupSlots();
+            SetupEquipmentSlots();       // Novos slots de equipamento
+
             RefreshUI();
             inventoryPanel.SetActive(false);
         }
@@ -51,10 +60,24 @@ public class InventorySystem : MonoBehaviour
         }
     }
 
-    public void AddTool(Tools tool)
+    private void SetupEquipmentSlots()
     {
-        // Procura slot que já contenha essa ferramenta
-        InventorySlotUI existingSlot = slotList.Find(s => s.HasItem() && s.GetItem().IsTool() && s.GetItem().tool.toolName == tool.toolName);
+        for (int i = 0; i < maxEquipmentSlots; i++)
+        {
+            GameObject slotGO = Instantiate(equipmentSlotPrefab, equipmentSlotsParent);
+            EquipmentSlotUI slotUI = slotGO.GetComponent<EquipmentSlotUI>();  // pega a subclasse
+            slotUI.Clear();
+            equipmentSlotList.Add(slotUI);
+            slotUI.inventorySystem = this;
+            slotUI.chestInventory = null;
+        }
+    }
+
+    
+    public void AddEquipment(Equipment equipment)
+    {
+        InventorySlotUI existingSlot = equipmentSlotList.Find(s =>
+            s.HasItem() && s.GetItem().IsEquipment() && s.GetItem().equipment.equipmentName == equipment.equipmentName);
 
         if (existingSlot != null)
         {
@@ -62,14 +85,14 @@ public class InventorySystem : MonoBehaviour
         }
         else
         {
-            InventorySlotUI emptySlot = slotList.Find(s => !s.HasItem());
+            InventorySlotUI emptySlot = equipmentSlotList.Find(s => !s.HasItem());
             if (emptySlot != null)
             {
-                emptySlot.Set(new InventoryItem(tool));
+                emptySlot.Set(new InventoryItem(equipment));
             }
             else
             {
-                Debug.Log("Inventário cheio!");
+                Debug.Log("Inventário de Equipamentos cheio!");
                 return;
             }
         }
@@ -101,16 +124,15 @@ public class InventorySystem : MonoBehaviour
             }
         }
 
-        // Atualiza peso total
         currentWeight -= itemWeight;
         if (currentWeight < 0f) currentWeight = 0f;
 
-        // Remove o item de seu slot
         InventorySlotUI slot = slotList.Find(s => s.HasItem() && s.GetItem() == item);
+        if (slot == null)
+            slot = slotList.Find(s => s.HasItem() && s.GetItem() == item);
+
         if (slot != null)
-        {
             slot.Clear();
-        }
 
         RefreshUI();
     }
@@ -123,13 +145,18 @@ public class InventorySystem : MonoBehaviour
             slotList[i].RefreshSlotUI();
         }
 
-        Debug.Log($"RefreshUI - Peso Atual: {currentWeight} / {maxWeight}");
+        for (int i = 0; i < slotList.Count; i++)
+        {
+            slotList[i].index = i;
+            slotList[i].RefreshSlotUI();
+        }
 
-        // Atualiza o texto do peso
         if (inventoryWeighUI.weightText != null)
         {
             inventoryWeighUI.weightText.text = $"Peso: {currentWeight}/{maxWeight}";
         }
+
+        Debug.Log($"RefreshUI - Peso Atual: {currentWeight} / {maxWeight}");
     }
 
     public bool TryAddToSlot(ICollectable collectable)
@@ -177,10 +204,22 @@ public class InventorySystem : MonoBehaviour
                         newWeight += collectable.weight * item.quantity;
                     }
                 }
-                else if (item.IsTool())
+                else if (item.IsEquipment())
                 {
                     // Se quiser contar peso das ferramentas, faça aqui (exemplo):
                     // newWeight += item.tool.weight * item.quantity;
+                }
+            }
+        }
+
+        foreach (var slot in slotList)
+        {
+            if (slot.HasItem())
+            {
+                InventoryItem item = slot.GetItem();
+                if (item.IsEquipment())
+                {
+                    // newWeight += item.tool.weight * item.quantity; // se necessário
                 }
             }
         }

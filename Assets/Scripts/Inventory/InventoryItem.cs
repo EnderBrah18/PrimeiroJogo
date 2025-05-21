@@ -10,15 +10,16 @@ public class InventoryItem
     public float weightPerUnit;
     public float ItemTotalWeight => weightPerUnit * quantity;
 
-    public Tools tool; // Referência à ferramenta, se for uma ferramenta
+    public Equipment equipment; // Referência à ferramenta, se for uma ferramenta
     public ICollectable collectable; // Referência ao item coletável, se for um coletável
 
     // Construtores para diferentes tipos de itens
-    public InventoryItem(Tools tool)
+    public InventoryItem(Equipment equipment)
     {
-        itemID = tool.toolName;
-        this.tool = tool;
+        itemID = equipment.equipmentName;
+        this.equipment = equipment;
         quantity = 1;
+        weightPerUnit = equipment.weight;  // se Equipment tiver weight
     }
 
     public InventoryItem(ICollectable collectable)
@@ -31,13 +32,46 @@ public class InventoryItem
 
     public float TotalWeight => weightPerUnit * quantity;
 
+    public float GetWeight()
+    {
+        if (IsEquipment())
+            return weightPerUnit;
+        else if (IsCollectable())
+            return collectable.GetWeight();
+        else
+            return 0f;
+    }
 
+    public string GetDescription()
+    {
+        if (IsEquipment())
+            return equipment.description;  // supondo que Equipment tenha descrição
+        else if (IsCollectable())
+            return collectable.GetDescription();
+        else
+            return "";
+    }
 
-    public float GetWeight() => collectable.GetWeight();
-    public string GetDescription() => collectable.GetDescription();
-    public string GetID() => collectable.GetID();
-    public Sprite GetIcon() => collectable.GetIcon(); // supondo que tenha
+    public string GetID()
+    {
+        if (IsEquipment())
+            return equipment.equipmentName;
+        else if (IsCollectable())
+            return collectable.GetID();
+        else
+            return "";
+    }
 
-    public bool IsTool() => tool != null;
+    public Sprite GetIcon()
+    {
+        if (IsEquipment())
+            return equipment.icon;
+        else if (IsCollectable())
+            return collectable.GetIcon();
+        else
+            return null;
+    }
+
+    public bool IsEquipment() => equipment != null;
     public bool IsCollectable() => collectable != null;
 }

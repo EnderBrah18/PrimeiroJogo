@@ -7,26 +7,28 @@ using UnityEngine.EventSystems;
 
 public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
+    [Header("UI Elements")]
     public Image icon;
     public TextMeshProUGUI quantityText;
+
     public int index; // posição do slot no inventário
 
-    private InventoryItem currentItem;
+    //  Tornado 'protected' para herança
+    protected InventoryItem currentItem;
     public InventorySystem inventorySystem;
     public ChestInventory chestInventory;
 
-    private GameObject dragIconObj;
-    private RectTransform dragIconRect;
-    private Canvas canvas;
+    //  Tornado 'protected' para subclasse usar
+    protected GameObject dragIconObj;
+    protected RectTransform dragIconRect;
+    protected Canvas canvas;
 
-
-    private void Awake()
+    protected virtual void Awake()
     {
-        // Pega o canvas pai para posicionar o ícone de arraste
         canvas = GetComponentInParent<Canvas>();
     }
 
-    public void Set(InventoryItem item)
+    public virtual void Set(InventoryItem item)
     {
         currentItem = item;
         icon.sprite = item.GetIcon();
@@ -35,7 +37,7 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         RefreshSlotUI();
     }
 
-    public void Clear()
+    public virtual void Clear()
     {
         currentItem = null;
         icon.sprite = null;
@@ -44,22 +46,13 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         RefreshSlotUI();
     }
 
-    public InventoryItem GetItem()
-    {
-        return currentItem;
-    }
+    public InventoryItem GetItem() => currentItem;
 
-    public bool HasItem()
-    {
-        return currentItem != null;
-    }
+    public bool HasItem() => currentItem != null;
 
-    public InventoryItem GetCurrentItem()
-    {
-        return currentItem;
-    }
+    public InventoryItem GetCurrentItem() => currentItem;
 
-    public void SetCurrentItem(InventoryItem item)
+    public virtual void SetCurrentItem(InventoryItem item)
     {
         currentItem = item;
         if (item != null)
@@ -74,25 +67,16 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         }
     }
 
-    public void RefreshSlotUI()
+    public virtual void RefreshSlotUI()
     {
-        if (currentItem != null)
-        {
-            // Atualiza ícone, quantidade, etc.
-            // Exemplo: iconImage.sprite = item.icon;
-            // quantidadeText.text = item.quantity.ToString();
-        }
-        else
-        {
-            // Limpa slot visualmente
-        }
+        // Pode ser sobrescrito para adicionar visuais extras em subclasses
     }
 
     // Evento para informar o item selecionado
     public delegate void OnItemSelectedDelegate(InventoryItem item);
     public static event OnItemSelectedDelegate OnItemSelected;
 
-    public void OnPointerClick(PointerEventData eventData)
+    public virtual void OnPointerClick(PointerEventData eventData)
     {
         if (currentItem != null)
         {
@@ -100,13 +84,10 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         }
     }
 
-    // --- Drag and Drop ---
-
-    public void OnBeginDrag(PointerEventData eventData)
+    public virtual void OnBeginDrag(PointerEventData eventData)
     {
         if (currentItem == null) return;
 
-        // Cria o objeto ícone que segue o mouse
         dragIconObj = new GameObject("DragIcon");
         dragIconObj.transform.SetParent(canvas.transform, false);
         dragIconObj.transform.SetAsLastSibling();
@@ -116,9 +97,8 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
 
         Image dragImage = dragIconObj.AddComponent<Image>();
         dragImage.sprite = icon.sprite;
-        dragImage.raycastTarget = false; // para não bloquear o raycast
+        dragImage.raycastTarget = false;
 
-        // Texto da quantidade
         GameObject textObj = new GameObject("QuantityText");
         textObj.transform.SetParent(dragIconObj.transform, false);
         TextMeshProUGUI dragText = textObj.AddComponent<TextMeshProUGUI>();
@@ -135,7 +115,7 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         UpdateDragIconPosition(eventData);
     }
 
-    public void OnDrag(PointerEventData eventData)
+    public virtual void OnDrag(PointerEventData eventData)
     {
         if (dragIconObj != null)
         {
@@ -143,16 +123,15 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         }
     }
 
-    public void OnEndDrag(PointerEventData eventData)
+    public virtual void OnEndDrag(PointerEventData eventData)
     {
         if (dragIconObj != null)
         {
             Destroy(dragIconObj);
         }
-
     }
 
-    public void OnDrop(PointerEventData eventData)
+    public virtual void OnDrop(PointerEventData eventData)
     {
         InventorySlotUI draggedSlot = eventData.pointerDrag?.GetComponent<InventorySlotUI>();
         if (draggedSlot == null || draggedSlot == this) return;
@@ -160,18 +139,15 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         InventoryItem draggedItem = draggedSlot.GetCurrentItem();
         InventoryItem thisItem = this.GetCurrentItem();
 
-        // Troca os itens nos slots
         draggedSlot.SetCurrentItem(thisItem);
         this.SetCurrentItem(draggedItem);
 
-        // Atualiza peso apenas se slot pertence ao InventorySystem
         if (inventorySystem != null)
         {
             inventorySystem.RecalculateWeight();
             inventorySystem.RefreshUI();
         }
 
-        // Se o draggedSlot pertence ao inventário também, atualize ele
         if (draggedSlot.inventorySystem != null)
         {
             draggedSlot.inventorySystem.RecalculateWeight();
@@ -179,7 +155,7 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         }
     }
 
-    private float GetItemWeight(InventoryItem item)
+    protected float GetItemWeight(InventoryItem item)
     {
         if (item.IsCollectable())
         {
@@ -190,14 +166,16 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         return 0f;
     }
 
-    private void UpdateDragIconPosition(PointerEventData eventData)
+    protected void UpdateDragIconPosition(PointerEventData eventData)
     {
-        Vector2 pos;
+        if (canvas == null || dragIconRect == null) return;
+
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             canvas.transform as RectTransform,
             eventData.position,
             eventData.pressEventCamera,
-            out pos);
+            out Vector2 pos);
+
         dragIconRect.localPosition = pos;
     }
 }
