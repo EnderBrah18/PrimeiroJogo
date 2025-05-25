@@ -671,14 +671,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2621702748823c3468ed4abe1133e325, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemName: FlorPreta
+  itemName: 
   icon: {fileID: 0}
-  description: Macaco
-  weight: 1
-  type: 0
-  requiredToolType: 3
-  requiredToolLevel: 1
-  baseCollectTime: 5
+  description: 
+  weight: 0
+  resourceData: {fileID: 11400000, guid: 9b7d7bcef41f8fa41afe3524b06fca1f, type: 2}
 --- !u!1 &53661814
 GameObject:
   m_ObjectHideFlags: 0

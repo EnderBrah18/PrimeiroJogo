@@ -4,22 +4,29 @@ using UnityEngine;
 
 public class CollectableResource : CollectableObject
 {
-    public CollectableType type;
-    public ToolType requiredToolType = ToolType.None;
-    public int requiredToolLevel = 0;
-    public float baseCollectTime = 0f;
+    public ResourceSO resourceData;
 
     private bool isBeingCollected = false;
 
+    private void Awake()
+    {
+        if (resourceData != null)
+        {
+            itemName = resourceData.resourceName;
+            icon = resourceData.icon;
+            description = resourceData.description;
+            weight = resourceData.weight;
+        }
+    }
+
     public override void StartCollect(Tools equippedTool)
     {
-        if (isBeingCollected) return;
-
+        if (isBeingCollected || resourceData == null) return;
         if (!CanBeCollected(equippedTool)) return;
 
-        float finalTime = baseCollectTime;
+        float finalTime = resourceData.baseCollectTime;
 
-        int levelDiff = equippedTool.level - requiredToolLevel;
+        int levelDiff = equippedTool.level - resourceData.requiredToolLevel;
         if (levelDiff > 0)
             finalTime -= levelDiff * 2f;
 
@@ -29,7 +36,7 @@ public class CollectableResource : CollectableObject
 
         if (!InventorySystem.Instance.TryAddToSlot(this)) return;
 
-        Debug.Log($"Coletando recurso: {itemName}, tempo: {finalTime:F2}");
+        Debug.Log($"Coletando recurso: {resourceData.resourceName}, tempo: {finalTime:F2}");
         InventorySystem.Instance.AddCollectable(this);
 
         StartCoroutine(CollectDelay(finalTime));
@@ -44,13 +51,11 @@ public class CollectableResource : CollectableObject
 
     public override bool CanBeCollected(Tools currentTool)
     {
-        // Lógica específica para recursos
-        // Exemplo:
-        if (requiredToolType == ToolType.None)
+        if (resourceData.requiredToolType == ToolType.None)
             return true;
         if (currentTool == null)
             return false;
-        return currentTool.toolType == requiredToolType && currentTool.level >= requiredToolLevel;
+        return currentTool.toolType == resourceData.requiredToolType && currentTool.level >= resourceData.requiredToolLevel;
     }
 
     private float GetRarityReduction(Rarity rarity)
@@ -76,4 +81,9 @@ public class CollectableResource : CollectableObject
         }
         return total;
     }
+
+    public override string GetID() => resourceData != null ? resourceData.resourceName : itemName;
+    public override Sprite GetIcon() => resourceData != null ? resourceData.icon : icon;
+    public override string GetDescription() => resourceData != null ? resourceData.description : description;
+    public override float GetWeight() => resourceData != null ? resourceData.weight : weight;
 }
