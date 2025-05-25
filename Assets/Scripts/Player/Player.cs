@@ -33,6 +33,7 @@ public class Player : MonoBehaviour
     public CharacterController _characterController;
     public Transform cameraTransform;
 
+    #region MovementVariables
     [Header("Movimentação")]
     public float turnSpeed = 10f;
     public float jumpForce = 8f;
@@ -74,9 +75,23 @@ public class Player : MonoBehaviour
     public float sprintMultiplier = 1.75f;
     public bool isSprinting = false;
 
+    #endregion
+
+    // 8 slots de equipamento
+    public Equipment helmet;
+    public Equipment chest;
+    public Equipment legs;
+    public Equipment boots;
+    public Equipment gloves;
+    public Equipment accessory;
+    public Equipment mainHand;
+    public Equipment offHand;
+
+    public Tools equippedTool => (offHand as Tools) ?? (mainHand as Tools);
+    public Weapon equippedWeapon => (offHand as Weapon) ?? (mainHand as Weapon);
+
     [Header("Collect")]
     public float collectRange = 2f;
-    public Tools equipedTool;
     public ChestInteraction chestInteraction;
 
     private bool isGrabbingWall = false;
@@ -416,11 +431,7 @@ public class Player : MonoBehaviour
     #endregion
     #endregion
 
-    public void EquiparFerramenta(Tools newTool)
-    {
-        equipedTool = newTool;
-        Debug.Log($"Ferramenta equipada: {newTool.name}");
-    }
+   
 }
 
 

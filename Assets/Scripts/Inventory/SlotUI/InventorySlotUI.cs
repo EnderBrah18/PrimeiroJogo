@@ -84,43 +84,28 @@ public class InventorySlotUI : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         }
     }
 
-    public virtual void OnBeginDrag(PointerEventData eventData)
+    public void OnBeginDrag(PointerEventData eventData)
     {
         if (currentItem == null) return;
 
+        // Cria ícone visual
         dragIconObj = new GameObject("DragIcon");
-        dragIconObj.transform.SetParent(canvas.transform, false);
-        dragIconObj.transform.SetAsLastSibling();
+        dragIconObj.transform.SetParent(transform.root, false);
+        Image image = dragIconObj.AddComponent<Image>();
+        image.raycastTarget = false;
 
-        dragIconRect = dragIconObj.AddComponent<RectTransform>();
-        dragIconRect.sizeDelta = icon.rectTransform.sizeDelta;
+        // Ícone temporário (pode ser substituído por um sprite do item)
+        image.color = Color.yellow;
+        RectTransform rt = dragIconObj.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(50, 50);
 
-        Image dragImage = dragIconObj.AddComponent<Image>();
-        dragImage.sprite = icon.sprite;
-        dragImage.raycastTarget = false;
-
-        GameObject textObj = new GameObject("QuantityText");
-        textObj.transform.SetParent(dragIconObj.transform, false);
-        TextMeshProUGUI dragText = textObj.AddComponent<TextMeshProUGUI>();
-        dragText.text = quantityText.text;
-        dragText.fontSize = quantityText.fontSize;
-        dragText.color = quantityText.color;
-        dragText.alignment = TextAlignmentOptions.BottomRight;
-        dragText.raycastTarget = false;
-        dragText.rectTransform.anchorMin = new Vector2(0, 0);
-        dragText.rectTransform.anchorMax = new Vector2(1, 1);
-        dragText.rectTransform.offsetMin = Vector2.zero;
-        dragText.rectTransform.offsetMax = Vector2.zero;
-
-        UpdateDragIconPosition(eventData);
+        dragIconObj.transform.position = eventData.position;
     }
 
-    public virtual void OnDrag(PointerEventData eventData)
+    public void OnDrag(PointerEventData eventData)
     {
         if (dragIconObj != null)
-        {
-            UpdateDragIconPosition(eventData);
-        }
+            dragIconObj.transform.position = eventData.position;
     }
 
     public virtual void OnEndDrag(PointerEventData eventData)

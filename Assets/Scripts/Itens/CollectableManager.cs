@@ -70,9 +70,9 @@ public class CollectableManager : MonoBehaviour
     {
         if (current != null)
         {
-            if (current.CanBeCollected(player.equipedTool))
+            if (current.CanBeCollected(player.equippedTool))
             {
-                current.StartCollect(player.equipedTool);
+                current.StartCollect(player.equippedTool);
             }
             else
             {

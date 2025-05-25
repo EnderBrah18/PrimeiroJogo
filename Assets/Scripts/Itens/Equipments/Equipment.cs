@@ -12,10 +12,29 @@ public enum Rarity
     Mythic
 }
 
+public enum EquipmentType
+{
+    Head,
+    Chest,
+    Legs,
+    Feet,
+    Gloves,
+    Accessory,
+    MainHand,
+    OffHand
+        
+}
+
 public abstract class Equipment : ScriptableObject
 {
     public string equipmentName;
     public Rarity rarity;
+    public EquipmentType equipmentType;
+
+    public int bonusAttack;
+    public int bonusDefense;
+    public int bonusSpeed;
+
     public int level;
     [TextArea] public string description;
     public Sprite icon;

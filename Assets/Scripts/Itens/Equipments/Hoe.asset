@@ -14,10 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   equipmentName: Enxada da Morte
   rarity: 5
+  equipmentType: 7
+  bonusAttack: 0
+  bonusDefense: 0
+  bonusSpeed: 0
   level: 3
   description: "Uma enxada que tr\xE1z a morte."
   icon: {fileID: 0}
   weight: 1
+  statModifiers: []
   toolType: 3
   prefab: {fileID: 0}
   statusModifiers:
