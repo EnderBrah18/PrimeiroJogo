@@ -36,9 +36,19 @@ public class PlayerEquipmentSlotUI : MonoBehaviour, IDropHandler, IBeginDragHand
 
     public void Equip(Equipment equipment)
     {
+        // Se já há um item equipado, devolve-o ao inventário antes
+        if (equippedItem != null)
+        {
+            InventorySystem.Instance.AddEquipment(equippedItem);
+        }
+
         equippedItem = equipment;
         slotText.text = equipment.equipmentName;
 
+        // Exibe as informações do item
+        EquipmentSlotUI.OnEquipmentSelected?.Invoke(equipment);
+
+        // Atualiza o equipamento do jogador
         switch (slotType)
         {
             case EquipmentType.Head: player.helmet = equipment; break;
