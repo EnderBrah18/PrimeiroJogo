@@ -32,6 +32,7 @@ public class Player : MonoBehaviour
 
     public CharacterController _characterController;
     public Transform cameraTransform;
+    public Animator animator;
 
     #region MovementVariables
     [Header("Movimentação")]
@@ -168,6 +169,8 @@ public class Player : MonoBehaviour
             switch (currentState)
         {
             case CharacterState.IDLE:
+                HandleJump();
+                break;
             case CharacterState.WALKING:
                 HandleMovement();
                 HandleJump();
@@ -175,6 +178,9 @@ public class Player : MonoBehaviour
                 break;
 
             case CharacterState.JUMPING:
+                HandleMovement();
+                HandleJump();
+                break;
             case CharacterState.FALLING:
                 HandleMovement();
                 HandleGravity();
@@ -188,6 +194,10 @@ public class Player : MonoBehaviour
                 // Durante o dash, o movimento é tratado pela coroutine
                 break;
         }
+
+        animator.SetBool("isIdle", currentState == CharacterState.IDLE);
+        animator.SetBool("isWalking", currentState == CharacterState.WALKING);
+        animator.SetBool("isJumping", currentState == CharacterState.JUMPING);
 
         Vector3 horizontalVelocity = currentHorizontalVelocity;
         _characterController.Move(horizontalVelocity * Time.deltaTime);
@@ -225,6 +235,7 @@ public class Player : MonoBehaviour
                 currentState = CharacterState.IDLE;
             }
         }
+
     }
     #region Movement
     void HandleMovement()
