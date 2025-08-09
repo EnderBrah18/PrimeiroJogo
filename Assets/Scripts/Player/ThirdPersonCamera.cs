@@ -5,21 +5,17 @@ using UnityEngine.InputSystem;
 
 public class ThirdPersonCamera : MonoBehaviour
 {
+    public Transform target;       // Player
+    public Transform cam;          // MainCamera
+    public float distance = 5f;    // Distância da câmera
+    public float mouseSensitivity = 2f;
+    public float minY = -30f;      // Limite vertical
+    public float maxY = 60f;
 
-    public Transform target;            // O transform do jogador
-    public Vector3 offset = new Vector3(0, 3, 7); // Offset da câmera em relação ao jogador
-    public float sensitivity = 3f;      // Sensibilidade do mouse
-    public float distance = 6f;         // Distância da câmera
-    public float height = 3f;           // Altura da câmera
-    public float smoothSpeed = 10f;     // Suavidade na rotação
+    private float rotX = 0f;
+    private float rotY = 0f;
 
-
-    private bool cursorLocked = true;
-
-    float yaw; // Rotação horizontal
-    float pitch; // Rotação vertical
-
-    private void Start()
+    void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -27,17 +23,21 @@ public class ThirdPersonCamera : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!cursorLocked) return;
+        // Leitura do mouse
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        yaw += Input.GetAxis("Mouse X") * sensitivity;
-        pitch += Input.GetAxis("Mouse Y") * sensitivity;
-        pitch = Mathf.Clamp(pitch, -30f, 60f); // Limita o ângulo vertical
+        rotX -= mouseY;
+        rotY += mouseX;
 
-        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0);
-        Vector3 desiredPosition = target.position + rotation * new Vector3(0, height, -distance);
+        // Limita a rotação vertical
+        rotX = Mathf.Clamp(rotX, minY, maxY);
 
-        transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
-        transform.LookAt(target.position + Vector3.up * 1.5f); // Olha para o peito/cabeça do personagem
+        // Aplica rotação no pivot
+        transform.rotation = Quaternion.Euler(rotX, rotY, 0);
+
+        // Posiciona a câmera atrás do pivot
+        cam.position = transform.position - transform.forward * distance;
+        cam.LookAt(target.position + Vector3.up * 1.7f); // Ajusta para olhar a cabeça do player
     }
-
 }

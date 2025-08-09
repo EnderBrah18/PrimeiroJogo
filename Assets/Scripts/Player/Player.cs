@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -19,7 +19,6 @@ public enum CharacterState
 
 public class Player : MonoBehaviour
 {
-
     public CharacterState currentState = CharacterState.IDLE;
 
     [Header("Inputs")]
@@ -28,21 +27,22 @@ public class Player : MonoBehaviour
     private InputAction jumpAction;
     private InputAction dashAction;
     private InputAction sprintAction;
-    private InputAction interactAction; 
+    private InputAction interactAction;
 
     public CharacterController _characterController;
-    public Transform cameraTransform;
     public Animator animator;
+    [SerializeField] private Transform cameraTransform;
+
 
     #region MovementVariables
-    [Header("Movimentação")]
-    public float turnSpeed = 10f;
-    public float jumpForce = 8f;
-    public float moveSpeed = 10f;
-    public float vSpeed = 0f;
-    public float gravity = -9.8f;
+    [Header("Movimentaï¿½ï¿½o")]
+    [SerializeField] public float turnSpeed = 10f;
+    [SerializeField] public float jumpForce = 8f;
+    [SerializeField] public float moveSpeed = 10f;
+    [SerializeField] public float vSpeed = 0f;
+    [SerializeField] public float gravity = -9.8f;
 
-    private float groundedGraceTime = 0.15f;
+    private float groundedGraceTime = 0.2f;
     private float lastGroundedTime;
     private bool isReallyGrounded => Time.time - lastGroundedTime <= groundedGraceTime;
 
@@ -99,6 +99,7 @@ public class Player : MonoBehaviour
     private Vector3 finalMovement;
     private Coroutine dashRoutine;
     private Vector3 currentHorizontalVelocity = Vector3.zero;
+    private Vector3 velocity; //Armazenar velocidade vertical
 
     private void Start()
     {
@@ -125,10 +126,12 @@ public class Player : MonoBehaviour
         {
             currentState = CharacterState.FALLING;
         }
+
     }
 
     private void Update()
     {
+
 
         finalMovement = Vector3.zero;
 
@@ -149,6 +152,7 @@ public class Player : MonoBehaviour
         {
             lastGroundedTime = Time.time;
         }
+
         if (currentState == CharacterState.CLIMBING && jumpAction.WasPressedThisFrame())
         {
             isGrabbingWall = false;
@@ -158,7 +162,7 @@ public class Player : MonoBehaviour
             return;
         }
 
-            if (CheckClimbableWall() && jumpAction.WasPressedThisFrame())
+        if (CheckClimbableWall() && jumpAction.WasPressedThisFrame())
         {
             isGrabbingWall = true;
             currentState = CharacterState.CLIMBING;
@@ -166,7 +170,9 @@ public class Player : MonoBehaviour
         }
 
 
-            switch (currentState)
+
+
+        switch (currentState)
         {
             case CharacterState.IDLE:
                 HandleJump();
@@ -191,23 +197,26 @@ public class Player : MonoBehaviour
                 break;
 
             case CharacterState.DASHING:
-                // Durante o dash, o movimento é tratado pela coroutine
+                // Durante o dash, o movimento ï¿½ tratado pela coroutine
                 break;
         }
 
         animator.SetBool("isIdle", currentState == CharacterState.IDLE);
         animator.SetBool("isWalking", currentState == CharacterState.WALKING);
         animator.SetBool("isJumping", currentState == CharacterState.JUMPING);
-
-        Vector3 horizontalVelocity = currentHorizontalVelocity;
-        _characterController.Move(horizontalVelocity * Time.deltaTime);
+        animator.SetBool("isFalling", currentState == CharacterState.FALLING);
 
         Vector3 verticalVelocity = Vector3.up * vSpeed;
-        _characterController.Move(verticalVelocity * Time.deltaTime);
+        Vector3 totalVelocity = currentHorizontalVelocity + verticalVelocity;
+        _characterController.Move(totalVelocity * Time.deltaTime);
+
+
+        Debug.Log($"Pos Y: {transform.position.y:F2}, vSpeed: {vSpeed:F2}, Grounded: {_characterController.isGrounded}");
 
         UpdateStamina();
         UpdateState();
     }
+
 
     void UpdateState()
     {
@@ -303,6 +312,7 @@ public class Player : MonoBehaviour
         }
     }
 
+
     #region DASH
     void HandleDash()
     {
@@ -389,7 +399,7 @@ public class Player : MonoBehaviour
         Vector3 sideways = transform.right * input.x * lateralClimbSpeed;
         Vector3 climbMovement = upward + sideways;
         _characterController.Move(climbMovement * Time.deltaTime);
-        vSpeed = 0f;
+
 
         if (Physics.Raycast(transform.position + Vector3.up, transform.forward, out RaycastHit hit, climbCheckDistance, climbableMask))
         {
@@ -441,8 +451,6 @@ public class Player : MonoBehaviour
     }
     #endregion
     #endregion
-
-   
 }
 
 
