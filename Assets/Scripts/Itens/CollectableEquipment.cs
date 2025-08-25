@@ -26,15 +26,7 @@ public class CollectableEquipment : CollectableObject
         }
 
         float itemWeight = GetWeight();
-        if (InventorySystem.Instance.currentWeight + itemWeight > InventorySystem.Instance.maxWeight)
-        {
-            Debug.Log("Inventário cheio. Não é possível coletar o equipamento.");
-            return;
-        }
-
-        InventorySystem.Instance.AddEquipment(equipmentData);
-        Debug.Log($"Você coletou o equipamento: {equipmentData.equipmentName}");
-
+        
         Destroy(gameObject); // Remove o objeto do mundo após coleta
     }
 

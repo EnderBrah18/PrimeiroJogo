@@ -34,11 +34,6 @@ public class CollectableResource : CollectableObject
         finalTime -= GetStatModifierValue(equippedTool, "CollectSpeed");
         finalTime = Mathf.Max(0.3f, finalTime);
 
-        if (!InventorySystem.Instance.TryAddToSlot(this)) return;
-
-        Debug.Log($"Coletando recurso: {resourceData.resourceName}, tempo: {finalTime:F2}");
-        InventorySystem.Instance.AddCollectable(this);
-
         StartCoroutine(CollectDelay(finalTime));
     }
 

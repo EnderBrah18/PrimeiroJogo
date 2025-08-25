@@ -25,7 +25,7 @@ public enum EquipmentType
         
 }
 
-public abstract class Equipment : ScriptableObject
+public abstract class Equipment : ItemSO
 {
     public string equipmentName;
     public Rarity rarity;
@@ -36,8 +36,6 @@ public abstract class Equipment : ScriptableObject
     public int bonusSpeed;
 
     public int level;
-    [TextArea] public string description;
-    public Sprite icon;
     public float weight = 1f;
 
     public List<StatModifier> statModifiers = new List<StatModifier>();

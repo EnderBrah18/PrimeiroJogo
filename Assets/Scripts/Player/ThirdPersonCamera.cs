@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 public class ThirdPersonCamera : MonoBehaviour
@@ -17,8 +18,6 @@ public class ThirdPersonCamera : MonoBehaviour
 
     public InputActionReference lookAction;
 
-    public InventoryToggle inventoryToggle;
-
     private bool blockCamera = false;
 
     void Start()
@@ -27,26 +26,25 @@ public class ThirdPersonCamera : MonoBehaviour
         Cursor.visible = false;
     }
 
-    private void OnEnable()
-    {
-        InventoryToggle.OnInventoryToggled += HandleInventoryToggled;
-        lookAction.action.Enable();
-    }
-
-    private void OnDisable()
-    {
-        InventoryToggle.OnInventoryToggled -= HandleInventoryToggled;
-        lookAction.action.Disable();
-    }
-
-    private void HandleInventoryToggled(bool isOpen)
+    public void HandleInventoryToggled(bool isOpen)
     {
         blockCamera = isOpen;
+        if (isOpen)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
     void LateUpdate()
     {
-        if (blockCamera) return; // bloqueia câmera enquanto inventário aberto
+        if (blockCamera || EventSystem.current.IsPointerOverGameObject())
+            return;
 
         Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
 

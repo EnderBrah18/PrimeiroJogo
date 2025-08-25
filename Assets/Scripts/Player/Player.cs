@@ -95,7 +95,6 @@ public class Player : MonoBehaviour
 
     [Header("Collect")]
     public float collectRange = 2f;
-    public ChestInteraction currentChest;
 
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
@@ -132,23 +131,6 @@ public class Player : MonoBehaviour
 
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        ChestInteraction chest = other.GetComponent<ChestInteraction>();
-        if (chest != null)
-        {
-            currentChest = chest;
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        ChestInteraction chest = other.GetComponent<ChestInteraction>();
-        if (chest != null && currentChest == chest)
-        {
-            currentChest = null;
-        }
-    }
 
     private void Update()
     {
@@ -162,10 +144,6 @@ public class Player : MonoBehaviour
             CollectableManager.Instance.TryCollect();
         }
 
-        if (currentChest != null && interactAction.WasPressedThisFrame())
-        {
-            currentChest.ToggleChestUI();
-        }
         #endregion
 
         if (_characterController.isGrounded)
