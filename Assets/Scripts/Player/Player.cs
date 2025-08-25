@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Windows;
 
 
 public enum CharacterState
@@ -28,6 +29,7 @@ public class Player : MonoBehaviour
     private InputAction dashAction;
     private InputAction sprintAction;
     private InputAction interactAction;
+    private InputAction climbAction;
 
     public CharacterController _characterController;
     public Animator animator;
@@ -93,7 +95,7 @@ public class Player : MonoBehaviour
 
     [Header("Collect")]
     public float collectRange = 2f;
-    public ChestInteraction chestInteraction;
+    public ChestInteraction currentChest;
 
     private bool isGrabbingWall = false;
     private Vector3 finalMovement;
@@ -111,6 +113,7 @@ public class Player : MonoBehaviour
         dashAction = playerInput.actions.FindAction("Dash");
         sprintAction = playerInput.actions.FindAction("Sprint");
         interactAction = playerInput.actions.FindAction("Interact");
+        climbAction = playerInput.actions.FindAction("Climb");
 
         CollectableManager.Instance.SetInteractAction(interactAction);
 
@@ -129,9 +132,26 @@ public class Player : MonoBehaviour
 
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        ChestInteraction chest = other.GetComponent<ChestInteraction>();
+        if (chest != null)
+        {
+            currentChest = chest;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        ChestInteraction chest = other.GetComponent<ChestInteraction>();
+        if (chest != null && currentChest == chest)
+        {
+            currentChest = null;
+        }
+    }
+
     private void Update()
     {
-
 
         finalMovement = Vector3.zero;
 
@@ -142,9 +162,9 @@ public class Player : MonoBehaviour
             CollectableManager.Instance.TryCollect();
         }
 
-        if (chestInteraction.playerInRange && interactAction.WasPressedThisFrame())
+        if (currentChest != null && interactAction.WasPressedThisFrame())
         {
-            chestInteraction.ToggleChestUI();
+            currentChest.ToggleChestUI();
         }
         #endregion
 
@@ -210,8 +230,6 @@ public class Player : MonoBehaviour
         Vector3 totalVelocity = currentHorizontalVelocity + verticalVelocity;
         _characterController.Move(totalVelocity * Time.deltaTime);
 
-
-        Debug.Log($"Pos Y: {transform.position.y:F2}, vSpeed: {vSpeed:F2}, Grounded: {_characterController.isGrounded}");
 
         UpdateStamina();
         UpdateState();
@@ -370,7 +388,7 @@ public class Player : MonoBehaviour
 
         Vector2 input = moveAction.ReadValue<Vector2>();
 
-        if (Input.GetKey(KeyCode.LeftControl))
+        if (climbAction.WasPressedThisFrame())
         {
             Vector3 launchDirection = Vector3.zero;
 

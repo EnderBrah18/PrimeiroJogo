@@ -114,7 +114,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3980229508265688634}
-  - component: {fileID: 2067137877736939163}
   - component: {fileID: 5458839490387313460}
   - component: {fileID: 5022179241157194818}
   m_Layer: 0
@@ -138,24 +137,10 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4330302249112010966}
+  - {fileID: 4274445919826558936}
   - {fileID: 4860184676643509127}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2067137877736939163
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2069841980293222187}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 035afded23e9dc840adcdfe21835af3a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  chestSlotsParent: {fileID: 7866443578445289236}
-  slotPrefab: {fileID: 728839410661014244, guid: d6611e59ce827f84789b9d71548265f5, type: 3}
-  chestSlotCount: 20
 --- !u!114 &5458839490387313460
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169,8 +154,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chestCanvas: {fileID: 6444538223825335349}
-  interactionKey: 101
   inventoryUI: {fileID: 0}
+  chestInventory: {fileID: 0}
   painelRecursos: {fileID: 0}
   painelEquipamentos: {fileID: 0}
   playerInRange: 0
@@ -397,7 +382,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6444538223825335349}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
@@ -473,3 +458,50 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!1 &6605349169898237281
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4274445919826558936}
+  - component: {fileID: 5374948763236586746}
+  m_Layer: 0
+  m_Name: ChestInventory
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4274445919826558936
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6605349169898237281}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3980229508265688634}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5374948763236586746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6605349169898237281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 035afded23e9dc840adcdfe21835af3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chestSlotsParent: {fileID: 7866443578445289236}
+  slotPrefab: {fileID: 728839410661014244, guid: d6611e59ce827f84789b9d71548265f5, type: 3}
+  chestSlotCount: 20

@@ -15,20 +15,48 @@ public class ThirdPersonCamera : MonoBehaviour
     private float rotX = 0f;
     private float rotY = 0f;
 
+    public InputActionReference lookAction;
+
+    public InventoryToggle inventoryToggle;
+
+    private bool blockCamera = false;
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
+    private void OnEnable()
+    {
+        InventoryToggle.OnInventoryToggled += HandleInventoryToggled;
+        lookAction.action.Enable();
+    }
+
+    private void OnDisable()
+    {
+        InventoryToggle.OnInventoryToggled -= HandleInventoryToggled;
+        lookAction.action.Disable();
+    }
+
+    private void HandleInventoryToggled(bool isOpen)
+    {
+        blockCamera = isOpen;
+    }
+
     void LateUpdate()
     {
-        // Leitura do mouse
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        if (blockCamera) return; // bloqueia câmera enquanto inventário aberto
 
-        rotX -= mouseY;
-        rotY += mouseX;
+        Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
+
+        // Leitura do mouse
+        float mouseX = lookInput.x * mouseSensitivity * Time.deltaTime * 100f;
+        float mouseY = lookInput.y * mouseSensitivity * Time.deltaTime * 100f;
+
+        Vector2 scaledDelta = Vector2.Scale(lookInput, new Vector2(0.1f, 0.1f));
+        rotY += scaledDelta.x;
+        rotX -= scaledDelta.y;
 
         // Limita a rotação vertical
         rotX = Mathf.Clamp(rotX, minY, maxY);

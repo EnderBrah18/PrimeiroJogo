@@ -97,6 +97,7 @@ public class InventorySystem : MonoBehaviour
             }
         }
 
+
         RefreshUI();
     }
 
@@ -225,6 +226,16 @@ public class InventorySystem : MonoBehaviour
         }
 
         currentWeight = newWeight;
+    }
+
+    public InventorySlotUI GetSlotWithItem(InventoryItem item)
+    {
+        foreach (var slot in slotList) // slotList é a lista de slots do inventário do player
+        {
+            if (slot.HasItem() && slot.GetCurrentItem() == item)
+                return slot;
+        }
+        return null;
     }
 }
 

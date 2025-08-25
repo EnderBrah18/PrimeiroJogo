@@ -4935,6 +4935,7 @@ MonoBehaviour:
   itemInfoPanel: {fileID: 1778318747}
   resourcePanel: {fileID: 1549938531}
   equipmentPanel: {fileID: 2099481604}
+  openInventory: {fileID: 7512025466407835934, guid: 8b546e1911eff05438f90300692acaa7, type: 3}
 --- !u!114 &1061009150
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6518,9 +6519,11 @@ MonoBehaviour:
   target: {fileID: 1795996425}
   cam: {fileID: 761447405}
   distance: 5
-  mouseSensitivity: 2
+  mouseSensitivity: 0.2
   minY: -30
   maxY: 60
+  lookAction: {fileID: 2041147517411840012, guid: 8b546e1911eff05438f90300692acaa7, type: 3}
+  inventoryToggle: {fileID: 1061009149}
 --- !u!4 &1508105910
 Transform:
   m_ObjectHideFlags: 0

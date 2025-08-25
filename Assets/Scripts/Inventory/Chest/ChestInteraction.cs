@@ -9,6 +9,7 @@ public class ChestInteraction : MonoBehaviour
     [Header("Referências")]
     public GameObject chestCanvas;               // Canvas com as UIs do baú e inventário do jogador
     public GameObject inventoryUI;
+    public ChestInventory chestInventory;
 
     [SerializeField] private Transform painelRecursos;
     [SerializeField] private Transform painelEquipamentos;
@@ -20,6 +21,27 @@ public class ChestInteraction : MonoBehaviour
     public bool playerInRange = false;
     private bool isOpen = false;
 
+    private void Awake()
+    {
+        // Se o chestInventory não foi atribuído no Inspector, pega automaticamente
+        if (chestInventory == null)
+            chestInventory = GetComponentInChildren<ChestInventory>();
+
+        if (chestCanvas == null)
+            chestCanvas = GetComponentInChildren<Canvas>(true)?.gameObject;
+    }
+
+    public void OnSlotClicked(InventorySlotUI slot)
+    {
+        if (slot.HasItem())
+        {
+            InventoryItem item = slot.GetCurrentItem();
+
+            // Pega o item do baú e inicia arraste no player
+            chestInventory.TakeItemFromChest(slot);
+        }
+    }
+
     private void Start()
     {
         if (chestCanvas != null)
@@ -29,12 +51,9 @@ public class ChestInteraction : MonoBehaviour
     public void ToggleChestUI()
     {
         isOpen = !isOpen;
-        if (chestCanvas != null)
-            chestCanvas.SetActive(isOpen);
+        if (chestCanvas != null) chestCanvas.SetActive(isOpen);
+        if (inventoryUI != null) inventoryUI.SetActive(isOpen);
 
-        if(inventoryUI != null)
-            inventoryUI.SetActive(isOpen);
-            
 
         if (isOpen)
         {

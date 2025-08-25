@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class InventoryToggle : MonoBehaviour
 {
@@ -9,11 +10,14 @@ public class InventoryToggle : MonoBehaviour
     public ItemInfoPanel itemInfoPanel;
     public GameObject resourcePanel;
     public GameObject equipmentPanel;
+    public InputActionReference openInventory;
     private bool isInventoryOpen = false;
+
+    public static event System.Action<bool> OnInventoryToggled;
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Tab))
+        if (openInventory.action.WasPressedThisFrame())
         {
             ToggleInventory();
         }
@@ -22,8 +26,9 @@ public class InventoryToggle : MonoBehaviour
     public void ToggleInventory()
     {
         isInventoryOpen = !isInventoryOpen;
-
         inventoryPanel.SetActive(isInventoryOpen);
+
+        OnInventoryToggled?.Invoke(isInventoryOpen); // dispara evento
 
         if (isInventoryOpen)
         {
