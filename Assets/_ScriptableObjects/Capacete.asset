@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 245026bc68185a74bb29e507a06c7267, type: 3}
   m_Name: Capacete
   m_EditorClassIdentifier: 
+  itemName: 
+  icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  description: "Voc\xEA entendeu"
+  itemType: 1
+  Weight: 3
   equipmentName: Capacete da Piroca
   rarity: 5
   equipmentType: 0
@@ -19,8 +24,6 @@ MonoBehaviour:
   bonusDefense: 0
   bonusSpeed: 0
   level: 2
-  description: "Voc\xEA entendeu"
-  icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
   weight: 1
   statModifiers: []
   armourType: 0

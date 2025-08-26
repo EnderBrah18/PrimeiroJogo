@@ -9,6 +9,7 @@ public abstract class ItemSO : ScriptableObject
     [TextArea]
     public string description;
     public ItemType itemType;
+    public float Weight;
 
     // Você pode adicionar propriedades comuns aqui
 }

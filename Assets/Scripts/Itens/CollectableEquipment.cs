@@ -6,6 +6,8 @@ public class CollectableEquipment : CollectableObject
 {
     public Equipment equipmentData; // Referência ao ScriptableObject do equipamento
 
+    private Inventory playerInventory;
+
     private void Reset()
     {
         if (equipmentData != null)
@@ -17,6 +19,11 @@ public class CollectableEquipment : CollectableObject
         }
     }
 
+    private void Start()
+    {
+        playerInventory = FindObjectOfType<PlayerInventory>().inventory;
+    }
+
     public override void StartCollect(Tools equippedTool)
     {
         if (equipmentData == null)
@@ -25,8 +32,20 @@ public class CollectableEquipment : CollectableObject
             return;
         }
 
-        float itemWeight = GetWeight();
-        
+        if (playerInventory != null && equipmentData != null)
+        {
+            bool added = playerInventory.AddItem(equipmentData, 1);
+            if (added)
+            {
+                Debug.Log($"{equipmentData.equipmentName} coletado e adicionado ao inventário!");
+            }
+            else
+            {
+                Debug.Log("Inventário cheio ou peso excedido!");
+                // Aqui você pode decidir: descartar no chão, criar um drop físico, etc.
+            }
+        }
+
         Destroy(gameObject); // Remove o objeto do mundo após coleta
     }
 

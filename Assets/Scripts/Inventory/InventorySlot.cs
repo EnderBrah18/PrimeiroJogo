@@ -13,4 +13,10 @@ public class InventorySlot
         this.item = item;
         this.quantity = quantity;
     }
+
+    public InventorySlot()
+    {
+        this.item = null;
+        this.quantity = 0;
+    }
 }

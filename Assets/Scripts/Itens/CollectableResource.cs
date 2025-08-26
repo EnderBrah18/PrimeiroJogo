@@ -8,6 +8,8 @@ public class CollectableResource : CollectableObject
 
     private bool isBeingCollected = false;
 
+    private Inventory playerInventory;
+
     private void Awake()
     {
         if (resourceData != null)
@@ -17,6 +19,11 @@ public class CollectableResource : CollectableObject
             description = resourceData.description;
             weight = resourceData.weight;
         }
+    }
+
+    private void Start()
+    {
+        playerInventory = FindObjectOfType<PlayerInventory>().inventory;
     }
 
     public override void StartCollect(Tools equippedTool)
@@ -41,6 +48,21 @@ public class CollectableResource : CollectableObject
     {
         isBeingCollected = true;
         yield return new WaitForSeconds(time);
+
+        if (playerInventory != null && resourceData != null)
+        {
+            bool added = playerInventory.AddItem(resourceData, 1);
+            if (added)
+            {
+                Debug.Log($"{resourceData.resourceName} coletado e adicionado ao inventário!");
+            }
+            else
+            {
+                Debug.Log("Inventário cheio ou peso excedido!");
+                // Aqui você pode decidir: descartar no chão, criar um drop físico, etc.
+            }
+        }
+
         Destroy(gameObject);
     }
 
