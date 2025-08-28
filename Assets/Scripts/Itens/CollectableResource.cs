@@ -9,6 +9,7 @@ public class CollectableResource : CollectableObject
     private bool isBeingCollected = false;
 
     private Inventory playerInventory;
+    private InventoryUI inventoryUI;
 
     private void Awake()
     {
@@ -23,7 +24,8 @@ public class CollectableResource : CollectableObject
 
     private void Start()
     {
-        playerInventory = FindObjectOfType<PlayerInventory>().inventory;
+        playerInventory = FindFirstObjectByType<PlayerInventory>().inventory;
+        inventoryUI = FindFirstObjectByType<InventoryUI>();
     }
 
     public override void StartCollect(Tools equippedTool)
@@ -63,6 +65,7 @@ public class CollectableResource : CollectableObject
             }
         }
 
+        inventoryUI.UpdateRecursosUI();
         Destroy(gameObject);
     }
 

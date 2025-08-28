@@ -5,16 +5,11 @@ using UnityEngine;
 public class Chest : MonoBehaviour
 {
     public Inventory chestInventory;
-    public int chestSize = 20;
+    public int slotCount = 30; // Number of slots in the chest
 
     private void Awake()
     {
-        chestInventory = new Inventory();
-        chestInventory.maxSlots = chestSize;
-
-        for (int i = 0; i < chestSize; i++)
-        {
-            chestInventory.slots.Add(new InventorySlot());
-        }
+        // Initialize the chest inventory with a unified list of slots
+        chestInventory = new Inventory(slotCount, 0, 100f, true);
     }
 }

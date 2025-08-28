@@ -8,6 +8,8 @@ public class CollectableEquipment : CollectableObject
 
     private Inventory playerInventory;
 
+    private InventoryUI inventoryUI;
+
     private void Reset()
     {
         if (equipmentData != null)
@@ -21,7 +23,8 @@ public class CollectableEquipment : CollectableObject
 
     private void Start()
     {
-        playerInventory = FindObjectOfType<PlayerInventory>().inventory;
+        playerInventory = FindFirstObjectByType<PlayerInventory>().inventory;
+        inventoryUI = FindFirstObjectByType<InventoryUI>();
     }
 
     public override void StartCollect(Tools equippedTool)
@@ -34,7 +37,8 @@ public class CollectableEquipment : CollectableObject
 
         if (playerInventory != null && equipmentData != null)
         {
-            bool added = playerInventory.AddItem(equipmentData, 1);
+            // Pass 'true' for the isEquipment parameter
+            bool added = playerInventory.AddItem(equipmentData, 1, true);
             if (added)
             {
                 Debug.Log($"{equipmentData.equipmentName} coletado e adicionado ao inventário!");
@@ -46,6 +50,7 @@ public class CollectableEquipment : CollectableObject
             }
         }
 
+        inventoryUI.UpdateEquipamentosUI();
         Destroy(gameObject); // Remove o objeto do mundo após coleta
     }
 

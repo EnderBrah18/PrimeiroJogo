@@ -24,12 +24,25 @@ public class InventoryUI : MonoBehaviour
     {
         if (inventory != null) // só abre se já foi configurado
             ShowRecursos();
+
+        else
+        {
+            Debug.LogError("Inventory is not set! Call Setup to initialize it.");
+        }
     }
+
+
 
     public void Setup(Inventory inv)
     {
+        if (inv == null)
+        {
+            Debug.LogError("Setup called with a null Inventory.");
+            return;
+        }
+
         inventory = inv;
-        ShowRecursos(); // mostra recursos por padrão
+        ShowRecursos(); // Show resources by default
     }
 
     public void ShowRecursos()
@@ -50,40 +63,54 @@ public class InventoryUI : MonoBehaviour
         UpdateEquipamentosUI();
     }
 
-    void UpdateRecursosUI()
+    public void UpdateRecursosUI(ChestUI chestUIReference = null)
     {
+        // Clear existing resource slots
         foreach (var slot in recursosSlots) Destroy(slot);
         recursosSlots.Clear();
 
-        foreach (InventorySlot invSlot in inventory.slots)
-        {
-            if (invSlot == null || invSlot.item == null) continue;
-            if (invSlot.item.itemType != ItemType.Resource) continue;
+        // Determine the target slots to display
+        List<InventorySlot> targetSlots = inventory.slots ?? inventory.resourceSlots;
 
+        if (targetSlots == null)
+        {
+            Debug.LogError("Target slots are null in UpdateRecursosUI.");
+            return;
+        }
+
+        // Create slots for the resource inventory
+        foreach (InventorySlot invSlot in targetSlots)
+        {
             GameObject slotGO = Instantiate(slotPrefab, recursosSlotsParent);
             InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Setup(invSlot);
-
+            slotUI.Setup(invSlot, chestUIReference);
             recursosSlots.Add(slotGO);
         }
 
         UpdatePesoUI();
     }
 
-    void UpdateEquipamentosUI()
+    public void UpdateEquipamentosUI()
     {
+        // Clear existing equipment slots
         foreach (var slot in equipamentosSlots) Destroy(slot);
         equipamentosSlots.Clear();
 
-        foreach (InventorySlot invSlot in inventory.slots)
-        {
-            if (invSlot == null || invSlot.item == null) continue;
-            if (invSlot.item.itemType != ItemType.Equipment) continue;
+        // Determine the target slots to display
+        List<InventorySlot> targetSlots = inventory.slots ?? inventory.equipmentSlots;
 
+        if (targetSlots == null)
+        {
+            Debug.LogError("Target slots are null in UpdateEquipamentosUI.");
+            return;
+        }
+
+        // Create slots for the equipment inventory
+        foreach (InventorySlot invSlot in targetSlots)
+        {
             GameObject slotGO = Instantiate(slotPrefab, equipamentosSlotsParent);
             InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Setup(invSlot);
-
+            slotUI.Setup(invSlot, null);
             equipamentosSlots.Add(slotGO);
         }
 

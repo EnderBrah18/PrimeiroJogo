@@ -7,9 +7,16 @@ public class PlayerInteraction : MonoBehaviour
 {
     public ChestUI chestUI;
     public InputActionReference interactAction;
+    public PlayerInventory playerInventory;
 
     private void Update()
     {
+        if (playerInventory == null)
+        {
+            Debug.LogError("PlayerInventory is not assigned in PlayerInteraction.");
+            return;
+        }
+
         if (interactAction.action.WasPressedThisFrame())
         {
             RaycastHit hit;
@@ -18,7 +25,7 @@ public class PlayerInteraction : MonoBehaviour
                 Chest chest = hit.collider.GetComponent<Chest>();
                 if (chest != null)
                 {
-                    chestUI.OpenChest(chest);
+                    chestUI.OpenChest(chest, playerInventory.inventory);
                 }
             }
         }

@@ -18,33 +18,59 @@ public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private GameObject placeholder;         // objeto que mantém o espaço
     private GameObject dragIcon;            // ícone que segue o mouse
     private Transform parentAfterDrag;      // parent original do slot
-
+    private ChestUI chestUI;
 
     private void Awake()
     {
         canvasGroup = GetComponent<CanvasGroup>();
     }
 
-    public void Setup(InventorySlot data)
+    public void Setup(InventorySlot data, ChestUI chestUIReference = null)
     {
         slotData = data;
-        icon.sprite = data.item.icon;
-        amountText.text = data.quantity > 1 ? data.quantity.ToString() : "";
+        chestUI = chestUIReference;
+
+        if (data != null && data.item != null)
+        {
+            icon.sprite = data.item.icon;
+            icon.enabled = true;
+            amountText.text = data.quantity > 1 ? data.quantity.ToString() : "";
+            amountText.gameObject.SetActive(true);
+        }
+        else
+        {
+            icon.sprite = null;
+            icon.enabled = false;
+            amountText.text = "";
+            amountText.gameObject.SetActive(false);
+        }
     }
 
-    // Quando começa a arrastar
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (slotData == null || slotData.item == null)
+        {
+            Debug.LogWarning("Cannot drag an empty slot.");
+            return;
+        }
+
+        if (icon == null)
+        {
+            Debug.LogError("Icon is not assigned in the InventorySlotUI.");
+            return;
+        }
+
+        if (dragIcon != null)
+        {
+            Debug.LogWarning("DragIcon already exists. Preventing duplicate creation.");
+            return;
+        }
 
         parentAfterDrag = transform.parent;
 
-        // Criar placeholder simples para manter espaço na grade
-        placeholder = Instantiate(placeholderPrefab);
-        placeholder.transform.SetSiblingIndex(transform.GetSiblingIndex());
-
-        // Criar ícone que segue o mouse
+        // Drag icon
         dragIcon = new GameObject("DragIcon");
-        dragIcon.transform.SetParent(transform.root);
+        dragIcon.transform.SetParent(GetRootCanvas().transform, true);
         dragIcon.transform.SetAsLastSibling();
 
         Image dragImage = dragIcon.AddComponent<Image>();
@@ -53,53 +79,74 @@ public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         RectTransform rt = dragIcon.GetComponent<RectTransform>();
         rt.sizeDelta = ((RectTransform)transform).sizeDelta;
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        dragIcon.transform.position = transform.position;
 
-        // Ocultar ícone original (mantendo o slot/fundo se quiser)
+        // Hide the original slot
         icon.enabled = false;
-        amountText.enabled = false;
-
+        amountText.gameObject.SetActive(false);
         canvasGroup.blocksRaycasts = false;
     }
 
-    // Enquanto arrasta
     public void OnDrag(PointerEventData eventData)
     {
         if (dragIcon != null)
             dragIcon.transform.position = eventData.position;
     }
 
-    // Quando solta
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Voltar slot para a posição original
-        transform.SetParent(parentAfterDrag);
-        transform.SetSiblingIndex(placeholder.transform.GetSiblingIndex());
+        if (dragIcon != null)
+        {
+            Destroy(dragIcon);
+            dragIcon = null; // Reset the reference
+        }
 
-        // Reativar ícone e quantidade
+        // Restore the original slot visuals
         icon.enabled = true;
-        amountText.enabled = true;
-
+        amountText.gameObject.SetActive(slotData != null && slotData.item != null);
         canvasGroup.blocksRaycasts = true;
-
-        // Destruir dragIcon e placeholder
-        Destroy(dragIcon);
-        Destroy(placeholder);
     }
 
-    // Quando solta em outro slot válido
     public void OnDrop(PointerEventData eventData)
     {
         InventorySlotUI otherSlotUI = eventData.pointerDrag.GetComponent<InventorySlotUI>();
-        if (otherSlotUI != null && otherSlotUI != this)
-        {
-            // Troca os itens entre os slots
-            InventorySlot temp = slotData;
-            slotData = otherSlotUI.slotData;
-            otherSlotUI.slotData = temp;
+        if (otherSlotUI == null || otherSlotUI == this)
+            return;
 
-            // Atualiza visual
-            Setup(slotData);
-            otherSlotUI.Setup(otherSlotUI.slotData);
+        // Transfer player <-> chest
+        bool isChestToPlayer = chestUI != null && otherSlotUI.chestUI == null;
+        bool isPlayerToChest = chestUI == null && otherSlotUI.chestUI != null;
+
+        if (isChestToPlayer)
+        {
+            chestUI.TransferToPlayer(otherSlotUI.slotData, otherSlotUI.slotData.quantity);
         }
+        else if (isPlayerToChest)
+        {
+            chestUI.TransferToChest(otherSlotUI.slotData, otherSlotUI.slotData.quantity);
+        }
+        else
+        {
+            // Simple swap
+            ItemSO tempItem = otherSlotUI.slotData.item;
+            int tempQty = otherSlotUI.slotData.quantity;
+
+            otherSlotUI.slotData.item = slotData.item;
+            otherSlotUI.slotData.quantity = slotData.quantity;
+
+            slotData.item = tempItem;
+            slotData.quantity = tempQty;
+        }
+
+        // Update UI
+        otherSlotUI.Setup(otherSlotUI.slotData, otherSlotUI.chestUI);
+        Setup(slotData, chestUI);
+    }
+
+    private Canvas GetRootCanvas()
+    {
+        return GetComponentInParent<Canvas>();
     }
 }
+
