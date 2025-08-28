@@ -8,132 +8,128 @@ public class Inventory
     public float maxWeight;
     public float currentWeight;
 
-    public List<InventorySlot> slots; // General list for all slots
+    public List<InventorySlot> slots; // General list for all slots and chest use
     public List<InventorySlot> resourceSlots; // Separate list for resources
     public List<InventorySlot> equipmentSlots; // Separate list for equipment
+    public List<InventorySlot> consumableSlots;
+    public List<InventorySlot> questItemSlots;
 
-    public Inventory(int resourceSlotsAmount = 20, int equipmentSlotsAmount = 10, float weight = 100f, bool isChest = false)
+    public Inventory(int resourceSlotsAmount = 20, int equipmentSlotsAmount = 10, int consumableSlotsAmount = 10, int questSlotsAmount = 5, float weight = 100f, bool isChest = false)
     {
         maxWeight = weight;
         currentWeight = 0f;
 
         if (isChest)
         {
-            // Unified list for Chest Inventory
-            maxSlots = resourceSlotsAmount + equipmentSlotsAmount;
-            slots = new List<InventorySlot>();
-
+            maxSlots = resourceSlotsAmount + equipmentSlotsAmount + consumableSlotsAmount + questSlotsAmount;
+            slots = new List<InventorySlot>(maxSlots);
             for (int i = 0; i < maxSlots; i++)
-            {
                 slots.Add(new InventorySlot(null, 0));
-            }
         }
         else
         {
-            // Separate lists for Player Inventory
-            maxSlots = resourceSlotsAmount + equipmentSlotsAmount;
-
-            resourceSlots = new List<InventorySlot>();
-            equipmentSlots = new List<InventorySlot>();
-
-            for (int i = 0; i < resourceSlotsAmount; i++)
-            {
-                resourceSlots.Add(new InventorySlot(null, 0));
-            }
-
-            for (int i = 0; i < equipmentSlotsAmount; i++)
-            {
-                equipmentSlots.Add(new InventorySlot(null, 0));
-            }
+            resourceSlots = CreateSlots(resourceSlotsAmount);
+            equipmentSlots = CreateSlots(equipmentSlotsAmount);
+            consumableSlots = CreateSlots(consumableSlotsAmount);
+            questItemSlots = CreateSlots(questSlotsAmount);
         }
     }
 
-    public bool AddItem(ItemSO item, int amount = 1, bool isEquipment = false)
+    public Inventory(int chestSlotCount, float weight = 100f)
     {
+        maxSlots = chestSlotCount;
+        maxWeight = weight;
+        currentWeight = 0f;
+
+        slots = new List<InventorySlot>(maxSlots);
+        for (int i = 0; i < maxSlots; i++)
+            slots.Add(new InventorySlot(null, 0));
+    }
+
+    private List<InventorySlot> CreateSlots(int amount)
+    {
+        var list = new List<InventorySlot>(amount);
+        for (int i = 0; i < amount; i++)
+            list.Add(new InventorySlot(null, 0));
+        return list;
+    }
+
+    private List<InventorySlot> GetTargetSlots(ItemSO item)
+    {
+        if (slots != null) return slots; // Baú
+
+        switch (item.itemType)
+        {
+            case ItemType.Resource: return resourceSlots;
+            case ItemType.Equipment: return equipmentSlots;
+            case ItemType.Consumable: return consumableSlots;
+            case ItemType.QuestItem: return questItemSlots;
+            default: return null;
+        }
+    }
+
+    public bool AddItem(ItemSO item, int amount = 1)
+    {
+        if (item == null) return false;
+
         float totalWeight = item.Weight * amount;
-        if (currentWeight + totalWeight > maxWeight)
-        {
-            Debug.Log("Inventory full! Exceeded weight.");
-            return false;
-        }
+        if (currentWeight + totalWeight > maxWeight) return false;
 
-        List<InventorySlot> targetSlots;
+        List<InventorySlot> targetSlots = GetTargetSlots(item);
+        if (targetSlots == null) return false;
 
-        if (slots != null)
+        // Tenta empilhar
+        foreach (var slot in targetSlots)
         {
-            // Unified Chest Inventory
-            targetSlots = slots;
-        }
-        else
-        {
-            // Separate Player Inventory
-            targetSlots = isEquipment ? equipmentSlots : resourceSlots;
-        }
-
-        // Try to stack in an existing slot
-        for (int i = 0; i < targetSlots.Count; i++)
-        {
-            if (targetSlots[i].item == item)
+            if (slot == null) continue;
+            if (slot.item == item)
             {
-                targetSlots[i].quantity += amount;
+                slot.quantity += amount;
                 currentWeight += totalWeight;
-                Debug.Log($"Item stacked in slot {i}. Quantity: {targetSlots[i].quantity}");
                 return true;
             }
         }
 
-        // Find an empty slot
-        for (int i = 0; i < targetSlots.Count; i++)
+        // Colocar em slot vazio
+        foreach (var slot in targetSlots)
         {
-            if (targetSlots[i].item == null)
+            if (slot == null) continue;
+            if (slot.item == null)
             {
-                targetSlots[i].item = item;
-                targetSlots[i].quantity = amount;
+                slot.item = item;
+                slot.quantity = amount;
                 currentWeight += totalWeight;
-                Debug.Log($"Item added to empty slot {i}. Quantity: {targetSlots[i].quantity}");
                 return true;
             }
         }
 
-        Debug.Log("Inventory full! No empty slots.");
-        return false;
+        return false; // inventário cheio
     }
 
-    public bool RemoveItem(ItemSO item, int amount = 1, bool isEquipment = false)
+    public bool RemoveItem(ItemSO item, int amount = 1)
     {
-        List<InventorySlot> targetSlots;
-
-        if (slots != null)
-        {
-            // Unified Chest Inventory
-            targetSlots = slots;
-        }
-        else
-        {
-            // Separate Player Inventory
-            targetSlots = isEquipment ? equipmentSlots : resourceSlots;
-        }
+        List<InventorySlot> targetSlots = GetTargetSlots(item);
+        if (targetSlots == null) return false;
 
         for (int i = 0; i < targetSlots.Count; i++)
         {
-            if (targetSlots[i].item == item)
+            var slot = targetSlots[i];
+            if (slot == null || slot.item != item) continue;
+
+            if (slot.quantity > amount)
             {
-                if (targetSlots[i].quantity > amount)
-                {
-                    targetSlots[i].quantity -= amount;
-                    currentWeight -= item.Weight * amount;
-                    Debug.Log($"Item removed from slot {i}. Remaining Quantity: {targetSlots[i].quantity}");
-                }
-                else
-                {
-                    currentWeight -= item.Weight * targetSlots[i].quantity;
-                    targetSlots[i].item = null;
-                    targetSlots[i].quantity = 0;
-                    Debug.Log($"Slot {i} is now empty.");
-                }
-                return true;
+                slot.quantity -= amount;
+                currentWeight -= item.Weight * amount;
             }
+            else
+            {
+                currentWeight -= item.Weight * slot.quantity;
+                slot.item = null;
+                slot.quantity = 0;
+            }
+            return true;
         }
+
         return false;
     }
 

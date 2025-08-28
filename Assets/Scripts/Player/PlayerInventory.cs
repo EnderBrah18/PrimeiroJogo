@@ -15,7 +15,7 @@ public class PlayerInventory : MonoBehaviour
     void Awake()
     {
         // Create the inventory instance with separate resource and equipment slots
-        inventory = new Inventory(maxResourceSlots, maxEquipmentSlots, maxWeight, false);
+        inventory = new Inventory(maxResourceSlots, maxEquipmentSlots);
 
         // Connect the UI to the inventory
         if (inventoryUI != null)

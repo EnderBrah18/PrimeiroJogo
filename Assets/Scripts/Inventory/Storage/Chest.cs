@@ -10,6 +10,6 @@ public class Chest : MonoBehaviour
     private void Awake()
     {
         // Initialize the chest inventory with a unified list of slots
-        chestInventory = new Inventory(slotCount, 0, 100f, true);
+        chestInventory = new Inventory(slotCount, 100f);
     }
 }

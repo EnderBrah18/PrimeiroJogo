@@ -38,7 +38,7 @@ public class CollectableEquipment : CollectableObject
         if (playerInventory != null && equipmentData != null)
         {
             // Pass 'true' for the isEquipment parameter
-            bool added = playerInventory.AddItem(equipmentData, 1, true);
+            bool added = playerInventory.AddItem(equipmentData, 1);
             if (added)
             {
                 Debug.Log($"{equipmentData.equipmentName} coletado e adicionado ao inventário!");
@@ -50,7 +50,6 @@ public class CollectableEquipment : CollectableObject
             }
         }
 
-        inventoryUI.UpdateEquipamentosUI();
         Destroy(gameObject); // Remove o objeto do mundo após coleta
     }
 
