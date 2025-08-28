@@ -68,10 +68,10 @@ public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         parentAfterDrag = transform.parent;
 
-        // Drag icon
+        // Create the drag icon
         dragIcon = new GameObject("DragIcon");
-        dragIcon.transform.SetParent(GetRootCanvas().transform, true);
-        dragIcon.transform.SetAsLastSibling();
+        dragIcon.transform.SetParent(GetRootCanvas().transform, true); // Attach to the root canvas
+        dragIcon.transform.SetAsLastSibling(); // Ensure it's rendered on top of other UI elements
 
         Image dragImage = dragIcon.AddComponent<Image>();
         dragImage.sprite = icon.sprite;
@@ -82,10 +82,10 @@ public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         rt.pivot = new Vector2(0.5f, 0.5f);
         dragIcon.transform.position = transform.position;
 
-        // Hide the original slot
+        // Hide the original slot visuals
         icon.enabled = false;
         amountText.gameObject.SetActive(false);
-        canvasGroup.blocksRaycasts = false;
+        canvasGroup.blocksRaycasts = false; // Disable raycasts for the slot while dragging
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -103,9 +103,22 @@ public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
 
         // Restore the original slot visuals
-        icon.enabled = true;
-        amountText.gameObject.SetActive(slotData != null && slotData.item != null);
-        canvasGroup.blocksRaycasts = true;
+        if (slotData != null && slotData.item != null)
+        {
+            icon.sprite = slotData.item.icon; // Restore the item's icon
+            icon.enabled = true;
+            amountText.text = slotData.quantity > 1 ? slotData.quantity.ToString() : "";
+            amountText.gameObject.SetActive(true);
+        }
+        else
+        {
+            icon.sprite = null; // Clear the icon if the slot is empty
+            icon.enabled = false;
+            amountText.text = "";
+            amountText.gameObject.SetActive(false);
+        }
+
+        canvasGroup.blocksRaycasts = true; // Re-enable raycasts for the slot
     }
 
     public void OnDrop(PointerEventData eventData)
