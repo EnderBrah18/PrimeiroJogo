@@ -11,13 +11,11 @@ public class InventorySlotUI : MonoBehaviour
     public Image icon;                      // Item icon
     public TextMeshProUGUI amountText;      // Item quantity text
 
-    private ChestUI chestUI;
     private InventoryUI inventoryUI;
 
-    public void Setup(InventorySlot data, ChestUI chestUIReference = null, InventoryUI inventoryUIReference = null)
+    public void Setup(InventorySlot data, InventoryUI inventoryUIReference = null)
     {
         slotData = data;
-        chestUI = chestUIReference;
         inventoryUI = inventoryUIReference;
 
         if (data != null && data.item != null)

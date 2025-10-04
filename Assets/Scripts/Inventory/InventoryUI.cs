@@ -124,7 +124,7 @@ public class InventoryUI : MonoBehaviour
         UpdatePesoUI();
     }
 
-    private void UpdateUIForType(ItemType type)
+    public void UpdateUIForType(ItemType type)
     {
         if (inventory == null)
         {

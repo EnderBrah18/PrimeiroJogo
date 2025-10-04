@@ -65,6 +65,7 @@ public class CollectableResource : CollectableObject
             }
         }
 
+        inventoryUI.UpdateUIForType(ItemType.Resource);
         Destroy(gameObject);
     }
 
