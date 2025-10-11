@@ -102,6 +102,9 @@ public class Player : MonoBehaviour
     private Vector3 currentHorizontalVelocity = Vector3.zero;
     private Vector3 velocity; //Armazenar velocidade vertical
 
+    public PlayerInventory playerInventory;
+
+
     private void Start()
     {
         playerInput = GetComponent<PlayerInput>();
@@ -447,6 +450,7 @@ public class Player : MonoBehaviour
     }
     #endregion
     #endregion
+
 }
 
 

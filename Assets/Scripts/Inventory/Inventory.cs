@@ -1,18 +1,22 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
+[Serializable]
 public class Inventory
 {
     public int maxSlots;
     public float maxWeight;
     public float currentWeight;
 
-    public List<InventorySlot> slots; // General list for all slots and chest use
-    public List<InventorySlot> resourceSlots; // Separate list for resources
-    public List<InventorySlot> equipmentSlots; // Separate list for equipment
+    public List<InventorySlot> slots;
+    public List<InventorySlot> resourceSlots;
+    public List<InventorySlot> equipmentSlots;
     public List<InventorySlot> consumableSlots;
     public List<InventorySlot> questItemSlots;
+
+    // Evento que será disparado quando o inventário mudar
+    public event Action<ItemType> OnInventoryChanged;
 
     public Inventory(int resourceSlotsAmount = 20, int equipmentSlotsAmount = 10, int consumableSlotsAmount = 10, int questSlotsAmount = 5, float weight = 100f, bool isChest = false)
     {
@@ -35,17 +39,6 @@ public class Inventory
         }
     }
 
-    public Inventory(int chestSlotCount, float weight = 100f)
-    {
-        maxSlots = chestSlotCount;
-        maxWeight = weight;
-        currentWeight = 0f;
-
-        slots = new List<InventorySlot>(maxSlots);
-        for (int i = 0; i < maxSlots; i++)
-            slots.Add(new InventorySlot(null, 0));
-    }
-
     private List<InventorySlot> CreateSlots(int amount)
     {
         var list = new List<InventorySlot>(amount);
@@ -56,7 +49,7 @@ public class Inventory
 
     private List<InventorySlot> GetTargetSlots(ItemSO item)
     {
-        if (slots != null) return slots; // Baú
+        if (slots != null) return slots;
 
         switch (item.itemType)
         {
@@ -78,7 +71,7 @@ public class Inventory
         List<InventorySlot> targetSlots = GetTargetSlots(item);
         if (targetSlots == null) return false;
 
-        // Tenta empilhar
+        // Empilha
         foreach (var slot in targetSlots)
         {
             if (slot == null) continue;
@@ -86,11 +79,13 @@ public class Inventory
             {
                 slot.quantity += amount;
                 currentWeight += totalWeight;
+
+                OnInventoryChanged?.Invoke(item.itemType); // Dispara evento
                 return true;
             }
         }
 
-        // Colocar em slot vazio
+        // Coloca em slot vazio
         foreach (var slot in targetSlots)
         {
             if (slot == null) continue;
@@ -99,11 +94,13 @@ public class Inventory
                 slot.item = item;
                 slot.quantity = amount;
                 currentWeight += totalWeight;
+
+                OnInventoryChanged?.Invoke(item.itemType); // Dispara evento
                 return true;
             }
         }
 
-        return false; // inventário cheio
+        return false;
     }
 
     public bool RemoveItem(ItemSO item, int amount = 1)
@@ -127,6 +124,8 @@ public class Inventory
                 slot.item = null;
                 slot.quantity = 0;
             }
+
+            OnInventoryChanged?.Invoke(item.itemType); // Dispara evento
             return true;
         }
 
@@ -137,4 +136,6 @@ public class Inventory
     {
         return currentWeight;
     }
+
+
 }

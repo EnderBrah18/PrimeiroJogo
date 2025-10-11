@@ -1,8 +1,8 @@
 using System.Collections;
-using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class InventorySlotUI : MonoBehaviour
 {
@@ -11,12 +11,25 @@ public class InventorySlotUI : MonoBehaviour
     public Image icon;                      // Item icon
     public TextMeshProUGUI amountText;      // Item quantity text
 
-    private InventoryUI inventoryUI;
+    private Canvas canvas;
+    private RectTransform rectTransform;
+    private CanvasGroup canvasGroup;
 
-    public void Setup(InventorySlot data, InventoryUI inventoryUIReference = null)
+    private InventoryUI parentUI;
+    private bool isPlayerInventory;        // Flag to determine if this slot belongs to the player inventory
+
+    private void Awake()
+    {
+        rectTransform = GetComponent<RectTransform>();
+        canvasGroup = GetComponent<CanvasGroup>();
+        canvas = GetComponentInParent<Canvas>();
+    }
+
+    public void Setup(InventorySlot data, InventoryUI parent = null, bool isPlayer = false)
     {
         slotData = data;
-        inventoryUI = inventoryUIReference;
+        parentUI = parent;
+        isPlayerInventory = isPlayer;
 
         if (data != null && data.item != null)
         {
@@ -33,6 +46,8 @@ public class InventorySlotUI : MonoBehaviour
             amountText.gameObject.SetActive(false);
         }
     }
+
+
 }
 
 

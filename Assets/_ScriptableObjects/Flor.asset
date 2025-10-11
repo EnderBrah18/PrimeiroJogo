@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82c0c35d2788eb446b39564428f5e6c5, type: 3}
   m_Name: Flor
   m_EditorClassIdentifier: 
-  itemName: 
+  itemName: Flor Azul
   icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  amount: 0
   description: 
   itemType: 0
   Weight: 2

@@ -535,7 +535,7 @@ MonoBehaviour:
     quantity: 0
   icon: {fileID: 9144716289481785076}
   amountText: {fileID: 4418203181622643596}
-  transferButton: {fileID: 3444763870231695490}
+  transfer: {fileID: 3444763870231695490}
 --- !u!225 &9165776982476727522
 CanvasGroup:
   m_ObjectHideFlags: 0

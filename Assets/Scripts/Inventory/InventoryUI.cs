@@ -9,6 +9,7 @@ public class InventoryUI : MonoBehaviour
     private Inventory inventory;
 
     public GameObject slotPrefab;
+    private InventorySlotUI selectedSlotUI;
 
     // Panels para cada tipo de item
     public GameObject recursosPanel;
@@ -21,11 +22,9 @@ public class InventoryUI : MonoBehaviour
     public Transform equipamentosSlotsParent;
     public Transform consumiveisSlotsParent;
     public Transform questItemsSlotsParent;
-    public Transform chestSlotsParent; // um GridLayout só para o baú
 
 
     // Listas de GameObjects criados dinamicamente
-    public List<GameObject> chestSlots = new List<GameObject>();
     private List<GameObject> recursosSlots = new List<GameObject>();
     private List<GameObject> equipamentosSlots = new List<GameObject>();
     private List<GameObject> consumiveisSlots = new List<GameObject>();
@@ -52,7 +51,17 @@ public class InventoryUI : MonoBehaviour
         }
 
         inventory = inv;
-        ShowRecursos(); // Show resources by default
+
+        // Assina o evento do inventário
+        inventory.OnInventoryChanged += HandleInventoryChanged;
+
+        ShowRecursos(); // Mostrar recursos por padrão
+    }
+
+    // Quando o inventário muda, atualiza automaticamente a UI
+    private void HandleInventoryChanged(ItemType type)
+    {
+        UpdateUIForType(type);
     }
 
     public void ShowRecursos()
@@ -100,29 +109,6 @@ public class InventoryUI : MonoBehaviour
     /// </summary>
     /// 
 
-    public void UpdateChestUI()
-    {
-        // Limpa os slots antigos do baú
-        foreach (var slot in chestSlots) Destroy(slot);
-        chestSlots.Clear();
-
-        if (inventory == null || inventory.slots.Count == 0)
-        {
-            Debug.LogWarning("Chest inventory is empty!");
-            return;
-        }
-
-        // Cria os slots do baú
-        for (int i = 0; i < inventory.slots.Count; i++)
-        {
-            GameObject slotGO = Instantiate(slotPrefab, chestSlotsParent);
-            InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Setup(inventory.slots[i]); // funciona mesmo se slot vazio
-            chestSlots.Add(slotGO);
-        }
-
-        UpdatePesoUI();
-    }
 
     public void UpdateUIForType(ItemType type)
     {
@@ -148,7 +134,7 @@ public class InventoryUI : MonoBehaviour
 
             GameObject slotGO = Instantiate(slotPrefab, parent);
             InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Setup(invSlot);
+            slotUI.Setup(invSlot, this);
             slotObjects.Add(slotGO);
         }
 
@@ -213,5 +199,4 @@ public class InventoryUI : MonoBehaviour
         }
     }
 
-    
 }
