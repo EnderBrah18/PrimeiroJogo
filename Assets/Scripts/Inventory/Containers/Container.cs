@@ -20,7 +20,7 @@ public class Container : MonoBehaviour
     void Awake()
     {
         // Cria o inventário interno
-        inventory = new Inventory(maxResourceSlots, maxEquipmentSlots, maxConsumableSlots, maxQuestItemSlots);
+        inventory = new Inventory(maxResourceSlots, maxEquipmentSlots, maxConsumableSlots, maxQuestItemSlots, maxWeight, true);
     }
 
     void Start()
