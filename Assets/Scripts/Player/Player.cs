@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,8 +20,9 @@ public enum CharacterState
     CLIMBING
 }
 
-public class Player : MonoBehaviour
+public class Player : MonoBehaviour 
 {
+    public event Action OnEquipmentChanged;
     public CharacterState currentState = CharacterState.IDLE;
 
     [Header("Inputs")]
@@ -38,11 +41,11 @@ public class Player : MonoBehaviour
 
     #region MovementVariables
     [Header("Movimenta��o")]
-    [SerializeField] public float turnSpeed = 10f;
-    [SerializeField] public float jumpForce = 8f;
-    [SerializeField] public float moveSpeed = 10f;
-    [SerializeField] public float vSpeed = 0f;
-    [SerializeField] public float gravity = -9.8f;
+    [SerializeField] private float turnSpeed = 10f;
+    [SerializeField] private float jumpForce = 8f;
+    [SerializeField] private float moveSpeed = 10f;
+    [SerializeField] private float vSpeed = 0f;
+    [SerializeField] private float gravity = -9.8f;
 
     private float groundedGraceTime = 0.2f;
     private float lastGroundedTime;
@@ -104,6 +107,10 @@ public class Player : MonoBehaviour
 
     public PlayerInventory playerInventory;
 
+    [HideInInspector] public float totalAttack;
+    [HideInInspector] public float totalDefense;
+    [HideInInspector] public float totalSpeed;
+    [HideInInspector] public float totalStamina;
 
     private void Start()
     {
@@ -132,6 +139,27 @@ public class Player : MonoBehaviour
             currentState = CharacterState.FALLING;
         }
 
+        if (playerInventory != null)
+        {
+            InventoryUI inventoryUI = UnityEngine.Object.FindFirstObjectByType<InventoryUI>(); // Updated to use FindFirstObjectByType
+            if (inventoryUI != null)
+            {
+                inventoryUI.Setup(playerInventory.inventory, this); // Pass both Inventory and Player references
+            }
+            else
+            {
+                Debug.LogError("InventoryUI not found in the scene.");
+            }
+            playerInventory.inventory.GetCurrentWeight();
+        }
+
+
+        // Apply stats modifiers from equipped items
+        ApplyEquipmentStats();
+
+        // Notify listeners
+        OnEquipmentChanged?.Invoke();
+        UpdateStats();
     }
 
 
@@ -451,6 +479,172 @@ public class Player : MonoBehaviour
     #endregion
     #endregion
 
+
+    #region Equipament Manager
+
+    public bool EquipItem(ItemSO item)
+    {
+        if (item == null)
+        {
+            Debug.LogWarning("[Equipamento] Tentando equipar um item nulo!");
+            return false;
+        }
+
+        if (item is not Equipment equipment)
+        {
+            Debug.Log($"[Equipamento] {item.itemName} não é um item equipável.");
+            return false;
+        }
+
+        Equipment previous = GetEquipped(equipment.equipmentType);
+        if (previous == equipment)
+        {
+            Debug.Log($"[Equipamento] {equipment.itemName} já está equipado.");
+            return false;
+        }
+
+        // Equipar
+        switch (equipment.equipmentType)
+        {
+            case EquipmentType.Head: helmet = equipment; break;
+            case EquipmentType.Chest: chest = equipment; break;
+            case EquipmentType.Legs: legs = equipment; break;
+            case EquipmentType.Feet: boots = equipment; break;
+            case EquipmentType.Gloves: gloves = equipment; break;
+            case EquipmentType.Accessory: accessory = equipment; break;
+            case EquipmentType.MainHand: mainHand = equipment; break;
+            case EquipmentType.OffHand: offHand = equipment; break;
+            default:
+                Debug.LogWarning($"[Equipamento] Tipo de equipamento não reconhecido: {equipment.equipmentType}");
+                return false;
+        }
+
+        Debug.Log($"[Equipamento] {equipment.itemName} equipado em {equipment.equipmentType}");
+
+        // Atualiza o peso
+        playerInventory.inventory.GetCurrentWeight();
+        // Dispara evento para atualizar UI ou atributos
+        OnEquipmentChanged?.Invoke();
+        UpdateStats(); // <-- aqui
+
+        return true;
+    }
+
+    public Equipment Unequip(EquipmentType type)
+    {
+        Equipment removed = GetEquipped(type);
+        if (removed == null) return null;
+
+        switch (type)
+        {
+            case EquipmentType.Head: helmet = null; break;
+            case EquipmentType.Chest: chest = null; break;
+            case EquipmentType.Legs: legs = null; break;
+            case EquipmentType.Feet: boots = null; break;
+            case EquipmentType.Gloves: gloves = null; break;
+            case EquipmentType.Accessory: accessory = null; break;
+            case EquipmentType.MainHand: mainHand = null; break;
+            case EquipmentType.OffHand: offHand = null; break;
+        }
+
+        Debug.Log($"[Equipamento] Desequipado: {type}");
+
+        playerInventory.inventory.GetCurrentWeight();
+        OnEquipmentChanged?.Invoke();
+        UpdateStats(); // <-- aqui
+
+        return removed;
+    }
+
+
+
+    public Equipment GetEquipped(EquipmentType type)
+    {
+        return type switch
+        {
+            EquipmentType.Head => helmet,
+            EquipmentType.Chest => chest,
+            EquipmentType.Legs => legs,
+            EquipmentType.Feet => boots,
+            EquipmentType.Gloves => gloves,
+            EquipmentType.Accessory => accessory,
+            EquipmentType.MainHand => mainHand,
+            EquipmentType.OffHand => offHand,
+            _ => null
+        };
+    }
+    #endregion
+
+    #region Equip Attributes & Weight
+
+    /// <summary>
+    /// Retorna o peso total de todos os equipamentos atualmente equipados.
+    /// </summary>
+    public float GetEquippedWeight()
+    {
+        float total = 0f;
+        Equipment[] equippedItems =
+        {
+        helmet, chest, legs, boots, gloves, accessory, mainHand, offHand
+    };
+
+        foreach (var item in equippedItems)
+        {
+            if (item != null)
+                total += item.Weight;
+        }
+
+        return total;
+    }
+
+    public void ApplyEquipmentStats()
+    {
+
+        // List of all equipped items
+        Equipment[] equippedItems = { helmet, chest, legs, boots, gloves, accessory, mainHand, offHand };
+
+        // Apply modifiers from each equipped item
+        foreach (var item in equippedItems)
+        {
+            if (item != null)
+            {
+                maxStamina += item.bonusStamina;
+                //Adicionar outros atributos conforme necessário
+            }
+        }
+
+        // Notify listeners that equipment stats have changed
+        OnEquipmentChanged?.Invoke();
+    }
+
+    public void UpdateStats()
+    {;
+
+        // Lista de equipamentos equipados
+        Equipment[] equippedItems =
+        {
+        helmet, chest, legs, boots, gloves, accessory, mainHand, offHand
+    };
+
+        // Aplica os StatModifiers de cada equipamento
+        foreach (var item in equippedItems)
+        {
+            if (item == null) continue;
+
+            foreach (var modifier in item.statModifiers)
+            {
+                switch (modifier.statName)
+                {
+                    case "Speed": moveSpeed += modifier.value; break;
+                    case "Stamina": maxStamina += modifier.value; break;
+                    default: Debug.LogWarning($"Stat desconhecido: {modifier.statName}"); break;
+                }
+            }
+        }
+    }
+
+
+    #endregion
 }
 
 

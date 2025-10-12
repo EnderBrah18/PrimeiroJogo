@@ -18,6 +18,16 @@ public class Inventory
     // Evento que será disparado quando o inventário mudar
     public event Action<ItemType> OnInventoryChanged;
 
+    private Player player;
+
+
+    public Inventory(Player playerRef, int resourceSlotsAmount = 20, int equipmentSlotsAmount = 10, int consumableSlotsAmount = 10, int questSlotsAmount = 5, float weight = 100f, bool isChest = false)
+        : this(resourceSlotsAmount, equipmentSlotsAmount, consumableSlotsAmount, questSlotsAmount, weight, isChest)
+    {
+        player = playerRef;
+    }
+
+    //  Construtor usado por baús e containers
     public Inventory(int resourceSlotsAmount = 20, int equipmentSlotsAmount = 10, int consumableSlotsAmount = 10, int questSlotsAmount = 5, float weight = 100f, bool isChest = false)
     {
         maxWeight = weight;
@@ -134,8 +144,45 @@ public class Inventory
 
     public float GetCurrentWeight()
     {
-        return currentWeight;
+        float totalWeight = 0;
+
+        // Se for um chest, usar slots
+        if (slots != null)
+        {
+            foreach (var slot in slots)
+            {
+                if (slot.item != null)
+                    totalWeight += slot.item.Weight * slot.quantity;
+            }
+        }
+        else // Inventário do player, usar listas separadas
+        {
+            totalWeight += GetSlotsWeight(resourceSlots);
+            totalWeight += GetSlotsWeight(equipmentSlots);
+            totalWeight += GetSlotsWeight(consumableSlots);
+            totalWeight += GetSlotsWeight(questItemSlots);
+        }
+
+        // Adiciona peso dos itens equipados
+        if (player != null)
+        {
+            totalWeight += player.GetEquippedWeight(); // Usa função do Player
+        }
+
+        return totalWeight;
     }
 
+    private float GetSlotsWeight(List<InventorySlot> slotList)
+    {
+        float weight = 0f;
+        if (slotList == null) return 0f;
+
+        foreach (var slot in slotList)
+        {
+            if (slot.item != null)
+                weight += slot.item.Weight * slot.quantity;
+        }
+        return weight;
+    }
 
 }

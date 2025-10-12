@@ -34,6 +34,7 @@ public abstract class Equipment : ItemSO
     public int bonusAttack;
     public int bonusDefense;
     public int bonusSpeed;
+    public int bonusStamina;
 
     public int level;
     public float weight = 1f;

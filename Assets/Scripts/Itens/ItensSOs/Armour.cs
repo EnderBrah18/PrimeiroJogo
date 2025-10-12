@@ -15,5 +15,7 @@ public enum ArmourType
 public class Armour : Equipment
 {
     public ArmourType armourType; // Enum opcional: Helmet, Chestplate, etc.
-    public float baseDefense;
+
+
+
 }

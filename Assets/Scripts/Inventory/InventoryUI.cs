@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,8 +10,9 @@ public class InventoryUI : MonoBehaviour
     private Inventory inventory;
 
     public GameObject slotPrefab;
-    private InventorySlotUI selectedSlotUI;
 
+    #region Inventory Panels and Parents
+    [Header("Inventory Panels and Parents")]
     // Panels para cada tipo de item
     public GameObject recursosPanel;
     public GameObject equipamentosPanel;
@@ -32,6 +34,21 @@ public class InventoryUI : MonoBehaviour
 
     public TextMeshProUGUI pesoText;
 
+    #endregion
+
+    [Header("Player Reference")]
+    public Player player; // Referência ao Player
+
+    [Header("Equipment Slots")]
+    public Transform headSlot;
+    public Transform chestSlot;
+    public Transform legsSlot;
+    public Transform feetSlot;
+    public Transform glovesSlot;
+    public Transform accessorySlot;
+    public Transform mainHandSlot;
+    public Transform offHandSlot;
+
     void Start()
     {
         if (inventory != null) // Only open if already configured
@@ -42,7 +59,7 @@ public class InventoryUI : MonoBehaviour
         }
     }
 
-    public void Setup(Inventory inv)
+    public void Setup(Inventory inv, Player playerRef)
     {
         if (inv == null)
         {
@@ -51,11 +68,13 @@ public class InventoryUI : MonoBehaviour
         }
 
         inventory = inv;
+        player = playerRef;
 
         // Assina o evento do inventário
         inventory.OnInventoryChanged += HandleInventoryChanged;
 
         ShowRecursos(); // Mostrar recursos por padrão
+        UpdatePesoUI();
     }
 
     // Quando o inventário muda, atualiza automaticamente a UI
@@ -138,8 +157,53 @@ public class InventoryUI : MonoBehaviour
             slotObjects.Add(slotGO);
         }
 
+        if (type == ItemType.Equipment)
+        {
+            UpdateEquipmentSlots();
+        }
+
         UpdatePesoUI();
     }
+
+    private void UpdateEquipmentSlots()
+    {
+        if (player == null)
+        {
+            Debug.LogError("Player reference is null in UpdateEquipmentSlots");
+            return;
+        }
+
+        UpdateEquipmentSlot(player.helmet, headSlot);
+        UpdateEquipmentSlot(player.chest, chestSlot);
+        UpdateEquipmentSlot(player.legs, legsSlot);
+        UpdateEquipmentSlot(player.boots, feetSlot);
+        UpdateEquipmentSlot(player.gloves, glovesSlot);
+        UpdateEquipmentSlot(player.accessory, accessorySlot);
+        UpdateEquipmentSlot(player.mainHand, mainHandSlot);
+        UpdateEquipmentSlot(player.offHand, offHandSlot);
+    }
+
+    private void UpdateEquipmentSlot(Equipment equipment, Transform slotTransform)
+    {
+        if (slotTransform == null) return;
+
+        Image equipmentImage = slotTransform.Find("EquipmentImage").GetComponent<Image>();
+        TextMeshProUGUI itemNameText = slotTransform.Find("ItemName").GetComponent<TextMeshProUGUI>();
+
+        if (equipment != null)
+        {
+            equipmentImage.sprite = equipment.icon;
+            equipmentImage.enabled = true;
+            itemNameText.text = equipment.itemName;
+        }
+        else
+        {
+            equipmentImage.sprite = null;
+            equipmentImage.enabled = false;
+            itemNameText.text = "";
+        }
+    }
+
 
     /// <summary>
     /// Retorna a lista de InventorySlot correspondente ao tipo

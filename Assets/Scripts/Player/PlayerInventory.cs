@@ -26,18 +26,41 @@ public class PlayerInventory : MonoBehaviour
 
     void Awake()
     {
-        // Create the inventory instance with separate resource and equipment slots
-        inventory = new Inventory(maxResourceSlots, maxEquipmentSlots);
+        // Obtém referência ao Player
+        Player player = GetComponent<Player>();
+        if (player == null)
+        {
+            Debug.LogError("Player component is missing in PlayerInventory.");
+            return;
+        }
 
+        // Cria o inventário com referência ao Player
+        inventory = new Inventory(
+            player,
+            maxResourceSlots,
+            maxEquipmentSlots,
+            maxConsumableSlots,
+            maxQuestItemSlots,
+            maxWeight,
+            false // não é um baú
+        );
+
+        // Adiciona os itens iniciais configurados no Inspector
         foreach (var entry in startingItems)
         {
             if (entry.item != null)
                 inventory.AddItem(entry.item, entry.amount);
         }
 
-        // Connect the UI to the inventory
+        // Conecta o inventário à interface de usuário
         if (inventoryUI != null)
-            inventoryUI.Setup(inventory);
+        {
+            inventoryUI.Setup(inventory, player);
+        }
+        else
+        {
+            Debug.LogWarning("InventoryUI is not assigned in PlayerInventory.");
+        }
     }
 }
 

@@ -14,7 +14,6 @@ public class ContainerUI : MonoBehaviour
 
     private Container container;
     private Dictionary<ItemType, List<InventorySlotUI>> slotObjectsByType = new Dictionary<ItemType, List<InventorySlotUI>>();
-    private InventorySlotUI selectedSlot;
 
 
     public void OpenContainerPanel(Container container)
@@ -55,7 +54,6 @@ public class ContainerUI : MonoBehaviour
         Debug.Log("[ContainerUI] Painel fechado.");
 
         container = null;
-        selectedSlot = null;
     }
 
     private void SetupContainerUI()
