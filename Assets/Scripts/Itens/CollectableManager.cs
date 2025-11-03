@@ -11,11 +11,11 @@ public class CollectableManager : MonoBehaviour
     public float detectionRadius = 2f;
     public LayerMask collectableLayer;
     public TextMeshProUGUI promptUI;
-    [SerializeField] private InputAction interactAction;
     [SerializeField] private Transform playerTransform;
 
     private CollectableObject current;
     private Player player;
+
 
     void Awake()
     {
@@ -55,15 +55,20 @@ public class CollectableManager : MonoBehaviour
 
         if (current != null)
         {
-            string inputDisplay = InputDisplayHelper.GetDisplayString(interactAction);
-            promptUI.text = $"Pressione <b>{inputDisplay}</b> para coletar {current.itemName}";
+            // Pega o InputAction "Interact" diretamente do InputManager
+            InputAction interact = InputManager.Instance.GetAction("Interact");
+
+            string inputDisplay = interact != null
+                ? InputDisplayHelper.GetDisplayString(interact)
+                : "???";
+
+            promptUI.text = $"Pressione {inputDisplay} para interagir";
             promptUI.gameObject.SetActive(true);
         }
         else
         {
             promptUI.gameObject.SetActive(false);
         }
-
     }
 
     public void TryCollect()
@@ -80,11 +85,6 @@ public class CollectableManager : MonoBehaviour
                 // Aqui você pode mostrar uma mensagem na UI também
             }
         }
-    }
-
-    public void SetInteractAction(InputAction action)
-    {
-        interactAction = action;
     }
 
 }

@@ -6,14 +6,14 @@ public enum CollectableType
 {
     Flor,
     Minerio,
-    Arvore
+    Madeira
 }
 public class CollectableObject : MonoBehaviour, ICollectable
 {
-    public string itemName;
-    public Sprite icon;
-    public string description;
-    public float weight = 1f;
+    private string itemName;
+    private Sprite icon;
+    private string description;
+    private float weight = 1f;
 
     public virtual string GetID() => itemName;
     public virtual Sprite GetIcon() => icon;

@@ -4,6 +4,7 @@ using UnityEngine;
 
 public abstract class ItemSO : ScriptableObject
 {
+    public string id;
     public string itemName;
     public Sprite icon;
     public int amount;

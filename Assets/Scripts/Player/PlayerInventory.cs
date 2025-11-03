@@ -1,7 +1,9 @@
+using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
+using static UnityEditor.Progress;
 
 [System.Serializable]
 public class StartingItem
@@ -10,10 +12,12 @@ public class StartingItem
     public int amount;
 }
 
-public class PlayerInventory : MonoBehaviour
+public class PlayerInventory : MonoBehaviour, ISavable
 {
     public Inventory inventory;
     public InventoryUI inventoryUI;
+
+    public string SaveKey => "PlayerInventory";
 
     public int maxResourceSlots = 20;
     public int maxEquipmentSlots = 10;
@@ -45,22 +49,53 @@ public class PlayerInventory : MonoBehaviour
             false // não é um baú
         );
 
-        // Adiciona os itens iniciais configurados no Inspector
         foreach (var entry in startingItems)
         {
             if (entry.item != null)
                 inventory.AddItem(entry.item, entry.amount);
         }
 
-        // Conecta o inventário à interface de usuário
-        if (inventoryUI != null)
-        {
-            inventoryUI.Setup(inventory, player);
-        }
-        else
-        {
-            Debug.LogWarning("InventoryUI is not assigned in PlayerInventory.");
-        }
+        inventoryUI?.Setup(inventory, player);
     }
+
+    private void OnEnable()
+    {
+        SaveSystem.Instance.RegisterSavable(this);
+    }
+
+    private void OnDisable()
+    {
+        SaveSystem.Instance.UnregisterSavable(this);
+    }
+
+    public string SaveData()
+    {
+        Debug.Log("Salvando inventário do jogador: " + inventory);
+        InventorySaveData data = new InventorySaveData(inventory);
+        return JsonUtility.ToJson(data);
+    }
+
+    public void LoadData(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return;
+
+        InventorySaveData data = JsonUtility.FromJson<InventorySaveData>(json);
+
+
+        for (int i = 0; i < data.itemIDs.Count; i++)
+        {
+            ItemSO item = ItemLoader.GetItemByID(data.itemIDs[i]);
+            if (item != null)
+                inventory.AddItem(item, data.amounts[i]);
+            else
+                Debug.LogWarning("Item do save não encontrado: " + data.itemIDs[i]);
+        }
+
+        inventoryUI?.Setup(inventory, GetComponent<Player>());
+    }
+
+    public string GetSaveKey() => SaveKey;
+
 }
+    
 

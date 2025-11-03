@@ -10,16 +10,7 @@ public class CollectableEquipment : CollectableObject
 
     private InventoryUI inventoryUI;
 
-    private void Reset()
-    {
-        if (equipmentData != null)
-        {
-            itemName = equipmentData.equipmentName;
-            icon = equipmentData.icon;
-            description = equipmentData.description;
-            weight = equipmentData.weight;
-        }
-    }
+    
 
     private void Start()
     {
@@ -59,8 +50,4 @@ public class CollectableEquipment : CollectableObject
         return true;
     }
 
-    public override string GetID() => equipmentData != null ? equipmentData.equipmentName : itemName;
-    public override Sprite GetIcon() => equipmentData != null ? equipmentData.icon : icon;
-    public override string GetDescription() => equipmentData != null ? equipmentData.description : description;
-    public override float GetWeight() => equipmentData != null ? equipmentData.weight : weight;
 }

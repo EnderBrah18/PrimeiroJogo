@@ -15,6 +15,17 @@ public class ContainerUI : MonoBehaviour
     private Container container;
     private Dictionary<ItemType, List<InventorySlotUI>> slotObjectsByType = new Dictionary<ItemType, List<InventorySlotUI>>();
 
+    public void Setup(Container container)
+    {
+        if (container == null || container.inventory == null)
+        {
+            Debug.LogWarning("[ContainerUI] Container ou inventário inválido!");
+            return;
+        }
+
+        this.container = container; // guarda referência real
+        OpenContainerPanel(container); // abre o painel usando o container real
+    }
 
     public void OpenContainerPanel(Container container)
     {

@@ -14,25 +14,13 @@ public enum CharacterState
     WALKING,
     JUMPING,
     FALLING,
-    DASHING,
-    SPRINTING,
-    CLIMB_JUMP_AIMING,
-    CLIMBING
+    SPRINTING
 }
 
 public class Player : MonoBehaviour 
 {
     public event Action OnEquipmentChanged;
     public CharacterState currentState = CharacterState.IDLE;
-
-    [Header("Inputs")]
-    private PlayerInput playerInput;
-    private InputAction moveAction;
-    private InputAction jumpAction;
-    private InputAction dashAction;
-    private InputAction sprintAction;
-    private InputAction interactAction;
-    private InputAction climbAction;
 
     public CharacterController _characterController;
     public Animator animator;
@@ -96,10 +84,6 @@ public class Player : MonoBehaviour
     public Tools equippedTool => (offHand as Tools) ?? (mainHand as Tools);
     public Weapon equippedWeapon => (offHand as Weapon) ?? (mainHand as Weapon);
 
-    [Header("Collect")]
-    public float collectRange = 2f;
-
-    private bool isGrabbingWall = false;
     private Vector3 finalMovement;
     private Coroutine dashRoutine;
     private Vector3 currentHorizontalVelocity = Vector3.zero;
@@ -114,30 +98,23 @@ public class Player : MonoBehaviour
 
     private void Start()
     {
-        playerInput = GetComponent<PlayerInput>();
-        playerInput.actions.Enable();
+        if (InputManager.Instance == null)
+        {
+            Debug.LogError("InputManager não encontrado na cena. Certifique-se de ter um InputManager ativo.");
+            return;
+        }
+        InputManager.Instance.OnInteractPerformed += OnInteractPerformed;
 
-        moveAction = playerInput.actions.FindAction("Move");
-        jumpAction = playerInput.actions.FindAction("Jump");
-        dashAction = playerInput.actions.FindAction("Dash");
-        sprintAction = playerInput.actions.FindAction("Sprint");
-        interactAction = playerInput.actions.FindAction("Interact");
-        climbAction = playerInput.actions.FindAction("Climb");
 
-        CollectableManager.Instance.SetInteractAction(interactAction);
-
+        // inicializações anteriores
         currentStamina = maxStamina;
-
         if (_characterController.isGrounded)
         {
             lastGroundedTime = Time.time;
             vSpeed = -2f;
             currentState = CharacterState.IDLE;
         }
-        else
-        {
-            currentState = CharacterState.FALLING;
-        }
+        else currentState = CharacterState.FALLING;
 
         if (playerInventory != null)
         {
@@ -162,6 +139,18 @@ public class Player : MonoBehaviour
         UpdateStats();
     }
 
+    private void OnDestroy()
+    {
+        if (InputManager.Instance != null)
+            InputManager.Instance.OnInteractPerformed -= OnInteractPerformed;
+    }
+
+    private void OnInteractPerformed(InputAction.CallbackContext ctx)
+    {
+        // se você quer usar TryCollect() igual antes
+        CollectableManager.Instance.TryCollect();
+    }
+
 
     private void Update()
     {
@@ -170,7 +159,7 @@ public class Player : MonoBehaviour
 
         #region CollectUpdate
 
-        if (interactAction.WasPressedThisFrame())
+        if (InputManager.Instance.WasInteractPressedThisFrame())
         {
             CollectableManager.Instance.TryCollect();
         }
@@ -182,25 +171,7 @@ public class Player : MonoBehaviour
             lastGroundedTime = Time.time;
         }
 
-        if (currentState == CharacterState.CLIMBING && jumpAction.WasPressedThisFrame())
-        {
-            isGrabbingWall = false;
-            currentState = CharacterState.FALLING;
-            vSpeed = 0f;
-
-            return;
-        }
-
-        if (CheckClimbableWall() && jumpAction.WasPressedThisFrame())
-        {
-            isGrabbingWall = true;
-            currentState = CharacterState.CLIMBING;
-            currentHorizontalVelocity = Vector3.zero;
-        }
-
-
-
-
+        // switch states (mantém seus handlers)
         switch (currentState)
         {
             case CharacterState.IDLE:
@@ -209,9 +180,7 @@ public class Player : MonoBehaviour
             case CharacterState.WALKING:
                 HandleMovement();
                 HandleJump();
-                HandleDash();
                 break;
-
             case CharacterState.JUMPING:
                 HandleMovement();
                 HandleJump();
@@ -220,16 +189,10 @@ public class Player : MonoBehaviour
                 HandleMovement();
                 HandleGravity();
                 break;
-
-            case CharacterState.CLIMBING:
-                HandleClimb();
-                break;
-
-            case CharacterState.DASHING:
-                // Durante o dash, o movimento � tratado pela coroutine
-                break;
+            
         }
 
+        // animações...
         animator.SetBool("isIdle", currentState == CharacterState.IDLE);
         animator.SetBool("isWalking", currentState == CharacterState.WALKING);
         animator.SetBool("isJumping", currentState == CharacterState.JUMPING);
@@ -239,24 +202,13 @@ public class Player : MonoBehaviour
         Vector3 totalVelocity = currentHorizontalVelocity + verticalVelocity;
         _characterController.Move(totalVelocity * Time.deltaTime);
 
-
-        UpdateStamina();
         UpdateState();
+        UpdateStamina();
     }
 
-
     void UpdateState()
-    {
-        if (currentState == CharacterState.CLIMBING && (!CheckClimbableWall() || !isGrabbingWall))
-        {
-            isGrabbingWall = false;
-            currentState = CharacterState.FALLING;
-            return;
-        }
-
-        if (currentState != CharacterState.CLIMBING && currentState != CharacterState.DASHING)
-        {
-            Vector2 input = moveAction.ReadValue<Vector2>();
+    { 
+        Vector2 input = InputManager.Instance.GetMoveVector();
 
             if (!isReallyGrounded)
             {
@@ -270,13 +222,12 @@ public class Player : MonoBehaviour
             {
                 currentState = CharacterState.IDLE;
             }
-        }
-
     }
+
     #region Movement
     void HandleMovement()
     {
-        Vector2 input = moveAction.ReadValue<Vector2>();
+        Vector2 input = InputManager.Instance.GetMoveVector();
 
         Vector3 cameraForward = cameraTransform.forward;
         Vector3 cameraRight = cameraTransform.right;
@@ -313,7 +264,7 @@ public class Player : MonoBehaviour
 
     void HandleJump()
     {
-        if (isReallyGrounded && jumpAction.WasPressedThisFrame() && currentStamina >= staminaJumpCost)
+        if (isReallyGrounded && InputManager.Instance.WasJumpPressedThisFrame() && currentStamina >= staminaJumpCost)
         {
             vSpeed = jumpForce;
             currentState = CharacterState.JUMPING;
@@ -338,146 +289,41 @@ public class Player : MonoBehaviour
             vSpeed += gravity * Time.deltaTime;
         }
     }
-
-
-    #region DASH
-    void HandleDash()
-    {
-        if (dashAction.WasPressedThisFrame() && Time.time >= lastDashTime + dashCooldown && dashRoutine == null)
-        {
-            dashRoutine = StartCoroutine(PerformDash());
-        }
-    }
-
-    IEnumerator PerformDash()
-    {
-        currentState = CharacterState.DASHING;
-        float elapsedTime = 0f;
-        Vector3 dashDirection = transform.forward;
-
-        while (elapsedTime < dashDuration)
-        {
-            float step = (dashDistance / dashDuration) * Time.deltaTime;
-            if (!Physics.CapsuleCast(_characterController.transform.position + _characterController.center, _characterController.transform.position + _characterController.center, _characterController.radius, dashDirection, out RaycastHit hit, step, dashCollisionMask))
-            {
-                _characterController.Move(dashDirection * step);
-            }
-            else
-            {
-                break;
-            }
-
-            elapsedTime += Time.deltaTime;
-            yield return null;
-        }
-
-        lastDashTime = Time.time;
-        dashRoutine = null;
-        currentState = CharacterState.FALLING;
-    }
     #endregion
-    #region Climb
-    void HandleClimb()
-    {
-        if (currentStamina < staminaMinToClimb)
-        {
-            isGrabbingWall = false;
-            currentState = CharacterState.FALLING;
-            vSpeed = 0f;
-            return;
-        }
-
-        if (!CheckClimbableWall())
-        {
-            isGrabbingWall = false;
-            currentState = CharacterState.FALLING;
-            vSpeed = 0f;
-            return;
-        }
-
-        Vector2 input = moveAction.ReadValue<Vector2>();
-
-        if (climbAction.WasPressedThisFrame())
-        {
-            Vector3 launchDirection = Vector3.zero;
-
-            if (input.y < -0.5f)
-            {
-                launchDirection = -transform.forward + Vector3.up * 0.75f;
-            }
-            else if (Mathf.Abs(input.x) > 0.5f)
-            {
-                launchDirection = transform.right * Mathf.Sign(input.x) + Vector3.up * 0.75f;
-            }
-
-            if (launchDirection != Vector3.zero)
-            {
-                launchDirection.Normalize();
-                vSpeed = jumpForce * 0.75f;
-                currentHorizontalVelocity = launchDirection * moveSpeed * 1.2f;
-                currentState = CharacterState.JUMPING;
-                return;
-            }
-
-        }
-
-
-        Vector3 upward = Vector3.up * input.y * climbSpeed;
-        Vector3 sideways = transform.right * input.x * lateralClimbSpeed;
-        Vector3 climbMovement = upward + sideways;
-        _characterController.Move(climbMovement * Time.deltaTime);
-
-
-        if (Physics.Raycast(transform.position + Vector3.up, transform.forward, out RaycastHit hit, climbCheckDistance, climbableMask))
-        {
-            Vector3 forwardOnWall = -hit.normal;
-            forwardOnWall.y = 0;
-            transform.rotation = Quaternion.LookRotation(forwardOnWall);
-        }
-
-    }
-
-    bool CheckClimbableWall()
-    {
-        Vector3 origin = transform.position + Vector3.up;
-        Vector3 direction = transform.forward;
-        return Physics.Raycast(origin, direction, climbCheckDistance, climbableMask);
-    }
 
     void UpdateStamina()
     {
-        // Corrida
-        isSprinting = sprintAction.IsPressed() && currentState == CharacterState.WALKING && currentStamina > staminaMinToSprint;
+        var input = InputManager.Instance;
+        if (input == null) return;
+
+        bool sprintPressed = input.IsSprintPressed();
+        bool canSprint = currentState == CharacterState.WALKING && currentStamina > staminaMinToSprint;
+
+        // ---- Corrida ----
+        isSprinting = sprintPressed && canSprint;
 
         if (isSprinting)
         {
-            currentStamina -= staminaSprintCost * Time.deltaTime;
-            currentStamina = Mathf.Max(currentStamina, 0);
+            DrainStamina(staminaSprintCost * Time.deltaTime);
             currentState = CharacterState.SPRINTING;
         }
-        else if (currentState != CharacterState.CLIMBING)
-        {
-            currentStamina += staminaRegenRate * Time.deltaTime;
-        }
+        
 
-        // Escalada
-        if (currentState == CharacterState.CLIMBING)
-        {
-            if (currentStamina <= 0)
-            {
-                isGrabbingWall = false;
-                currentState = CharacterState.FALLING;
-                return;
-            }
-
-            currentStamina -= staminaClimbCost * Time.deltaTime;
-            currentStamina = Mathf.Max(currentStamina, 0);
-        }
-
+        // Garante que não ultrapasse limites
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
     }
-    #endregion
-    #endregion
+
+    private void DrainStamina(float amount)
+    {
+        currentStamina -= amount;
+        if (currentStamina < 0) currentStamina = 0;
+    }
+
+    private void RegenStamina(float amount)
+    {
+        currentStamina += amount;
+        if (currentStamina > maxStamina) currentStamina = maxStamina;
+    }
 
 
     #region Equipament Manager

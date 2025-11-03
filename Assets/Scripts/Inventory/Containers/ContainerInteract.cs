@@ -7,7 +7,7 @@ public class ContainerInteract : MonoBehaviour
 {
     [Header("Configurações de Interação")]
     public float interactionDistance = 2.5f;
-    public InputAction interactAction;
+    [SerializeField] private InputAction interactAction;
 
     [Header("UI")]
     public ContainerUI containerUI;

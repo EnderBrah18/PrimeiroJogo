@@ -6,7 +6,6 @@ using UnityEngine;
 public class ResourceSO : ItemSO
 {
     public string resourceName;
-    public float weight;
     public ToolType requiredToolType;
     public int requiredToolLevel;
     public float baseCollectTime;
