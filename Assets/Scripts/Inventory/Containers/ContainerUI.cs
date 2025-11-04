@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class ContainerUI : MonoBehaviour
 {
+    public static ContainerUI Instance { get; private set; }
+
     [Header("Container UI Elements")]
     public TextMeshProUGUI containerNameText;
     public TextMeshProUGUI weightText;
@@ -14,6 +16,19 @@ public class ContainerUI : MonoBehaviour
 
     private Container container;
     private Dictionary<ItemType, List<InventorySlotUI>> slotObjectsByType = new Dictionary<ItemType, List<InventorySlotUI>>();
+
+    private void Awake()
+    {
+
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     public void Setup(Container container)
     {

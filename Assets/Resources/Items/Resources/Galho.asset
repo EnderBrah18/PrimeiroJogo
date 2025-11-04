@@ -15,12 +15,12 @@ MonoBehaviour:
   id: Stick
   itemName: Galho
   icon: {fileID: 0}
-  amount: 0
+  amount: 3
   description: 
   itemType: 0
   Weight: 2
   resourceName: "Galho de \xE1rvore"
   requiredToolType: 0
   requiredToolLevel: 0
-  baseCollectTime: 10
+  baseCollectTime: 0
   type: 2

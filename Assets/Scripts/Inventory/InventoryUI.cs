@@ -7,6 +7,8 @@ using UnityEngine.UI;
 
 public class InventoryUI : MonoBehaviour
 {
+    public static InventoryUI Instance { get; private set; }
+
     private Inventory inventory;
 
     public GameObject slotPrefab;
@@ -48,6 +50,18 @@ public class InventoryUI : MonoBehaviour
     public Transform accessorySlot;
     public Transform mainHandSlot;
     public Transform offHandSlot;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     void Start()
     {

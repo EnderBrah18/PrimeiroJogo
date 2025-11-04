@@ -19,6 +19,8 @@ public enum CharacterState
 
 public class Player : MonoBehaviour 
 {
+    public static Player Instance { get; private set; }
+
     public event Action OnEquipmentChanged;
     public CharacterState currentState = CharacterState.IDLE;
 
@@ -95,6 +97,19 @@ public class Player : MonoBehaviour
     [HideInInspector] public float totalDefense;
     [HideInInspector] public float totalSpeed;
     [HideInInspector] public float totalStamina;
+
+    private void Awake()
+    {
+
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     private void Start()
     {
@@ -189,7 +204,13 @@ public class Player : MonoBehaviour
                 HandleMovement();
                 HandleGravity();
                 break;
-            
+            case CharacterState.SPRINTING:
+                HandleMovement();
+                HandleJump();
+                HandleGravity();
+                break;
+                
+
         }
 
         // animações...

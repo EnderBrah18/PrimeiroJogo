@@ -12,7 +12,7 @@ public class CollectableResource : CollectableObject
     private InventoryUI inventoryUI;
 
 
-        private void Start()
+    private void Start()
     {
         var playerInvHolder = FindFirstObjectByType<PlayerInventory>();
         if (playerInvHolder != null)
@@ -68,7 +68,7 @@ public class CollectableResource : CollectableObject
 
         if (playerInventory != null && resourceData != null)
         {
-            bool added = playerInventory.AddItem(resourceData, 1);
+            bool added = playerInventory.AddItem(resourceData, resourceData.amount);
             if (added)
             {
                 Debug.Log($"{resourceData.resourceName} coletado e adicionado ao inventário!");
