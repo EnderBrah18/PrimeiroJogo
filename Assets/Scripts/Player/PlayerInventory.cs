@@ -60,6 +60,15 @@ public class PlayerInventory : MonoBehaviour, ISavable
 
     private void OnEnable()
     {
+        if (SaveSystem.Instance != null)
+            SaveSystem.Instance.RegisterSavable(this);
+        else
+            StartCoroutine(WaitAndRegister());
+    }
+
+    private IEnumerator WaitAndRegister()
+    {
+        yield return new WaitUntil(() => SaveSystem.Instance != null);
         SaveSystem.Instance.RegisterSavable(this);
     }
 

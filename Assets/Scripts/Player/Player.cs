@@ -299,7 +299,7 @@ public class Player : MonoBehaviour
         bool sprintPressed = input.IsSprintPressed();
         bool canSprint = currentState == CharacterState.WALKING && currentStamina > staminaMinToSprint;
 
-        // ---- Corrida ----
+        // Corrida
         isSprinting = sprintPressed && canSprint;
 
         if (isSprinting)
@@ -307,7 +307,15 @@ public class Player : MonoBehaviour
             DrainStamina(staminaSprintCost * Time.deltaTime);
             currentState = CharacterState.SPRINTING;
         }
-        
+        else
+        {
+            // Regenera stamina quando não está correndo
+            RegenStamina(staminaRegenRate * Time.deltaTime);
+
+            // volta o estado caso não esteja correndo
+            if (currentState == CharacterState.SPRINTING)
+                currentState = CharacterState.WALKING;
+        }
 
         // Garante que não ultrapasse limites
         currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
