@@ -378,6 +378,9 @@ public class Player : MonoBehaviour
             return false;
         }
 
+        bool removed = playerInventory.inventory.RemoveItem(equipment);
+        if (!removed) Debug.LogWarning("Falha ao remover do inventário");
+
         // Equipar
         switch (equipment.equipmentType)
         {
@@ -423,6 +426,8 @@ public class Player : MonoBehaviour
         }
 
         Debug.Log($"[Equipamento] Desequipado: {type}");
+
+        playerInventory.inventory.AddItem(removed);
 
         playerInventory.inventory.GetCurrentWeight();
         OnEquipmentChanged?.Invoke();

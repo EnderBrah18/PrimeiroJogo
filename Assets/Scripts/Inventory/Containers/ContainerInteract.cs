@@ -7,7 +7,7 @@ public class ContainerInteract : MonoBehaviour
 {
     [Header("Configurações de Interação")]
     public float interactionDistance = 2.5f;
-    [SerializeField] private InputAction interactAction;
+    [SerializeField] public InputActionReference interactAction;
 
     [Header("UI")]
     public ContainerUI containerUI;
@@ -26,19 +26,6 @@ public class ContainerInteract : MonoBehaviour
             col.isTrigger = true;
     }
 
-    private void OnEnable()
-    {
-        //  MUITO IMPORTANTE: ativar a ação manualmente
-        if (interactAction != null)
-            interactAction.Enable();
-    }
-
-    private void OnDisable()
-    {
-        if (interactAction != null)
-            interactAction.Disable();
-    }
-
     private void Start()
     {
         // Encontrar o player (pode ser melhorado com tag)
@@ -55,7 +42,7 @@ public class ContainerInteract : MonoBehaviour
             return;
 
         // Interação com tecla
-        if (interactAction.WasPressedThisFrame())
+        if (interactAction.action.WasPressedThisFrame())
         {
             Debug.Log($"[Container] Tentando abrir: {container.containerName}");
             TryOpenContainer();

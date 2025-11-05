@@ -3,9 +3,17 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static UnityEngine.UI.GridLayoutGroup;
 
-public class InventorySlotUI : MonoBehaviour
+public class InventorySlotUI : MonoBehaviour, IPointerClickHandler
 {
+    public enum InventoryOwnerType
+    {
+        Player,
+        Chest,
+        NPC
+    }
+
     [Header("Slot Data")]
     public InventorySlot slotData;          // Reference to the actual slot
     public Image icon;                      // Item icon
@@ -16,7 +24,8 @@ public class InventorySlotUI : MonoBehaviour
     private CanvasGroup canvasGroup;
 
     private InventoryUI parentUI;
-    private bool isPlayerInventory;        // Flag to determine if this slot belongs to the player inventory
+
+    public InventoryOwnerType ownerType = InventoryOwnerType.Player;
 
     private void Awake()
     {
@@ -25,11 +34,12 @@ public class InventorySlotUI : MonoBehaviour
         canvas = GetComponentInParent<Canvas>();
     }
 
-    public void Setup(InventorySlot data, InventoryUI parent = null, bool isPlayer = false)
+    public void Setup(InventorySlot data, InventoryUI parent = null, InventoryOwnerType owner = InventoryOwnerType.Player)
     {
+
         slotData = data;
         parentUI = parent;
-        isPlayerInventory = isPlayer;
+        ownerType = owner;
 
         if (data != null && data.item != null)
         {
@@ -47,6 +57,16 @@ public class InventorySlotUI : MonoBehaviour
         }
     }
 
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (slotData == null || slotData.item == null || parentUI == null)
+            return;
+
+        if (eventData.button == PointerEventData.InputButton.Left)
+        {
+            parentUI.ShowItemActions(slotData, transform.position, ownerType);
+        }
+    }
 
 }
 

@@ -34,7 +34,4 @@ public class Container : MonoBehaviour
 
     }
 
-    // Métodos auxiliares
-    public bool AddItem(ItemSO item, int amount = 1) => inventory.AddItem(item, amount);
-    public bool RemoveItem(ItemSO item, int amount = 1) => inventory.RemoveItem(item, amount);
 }

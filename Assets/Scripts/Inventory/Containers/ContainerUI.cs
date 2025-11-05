@@ -14,7 +14,9 @@ public class ContainerUI : MonoBehaviour
     public GameObject containerPanel;
     public Transform containerParent;
 
-    private Container container;
+    public Container container { get; private set; }
+    public Container ActiveContainer { get; private set; }  // Container atualmente aberto
+
     private Dictionary<ItemType, List<InventorySlotUI>> slotObjectsByType = new Dictionary<ItemType, List<InventorySlotUI>>();
 
     private void Awake()
@@ -38,12 +40,14 @@ public class ContainerUI : MonoBehaviour
             return;
         }
 
-        this.container = container; // guarda referência real
+        ActiveContainer = container; //  Guarda referência para transferências
+        containerNameText.text = container.containerName;
         OpenContainerPanel(container); // abre o painel usando o container real
     }
 
     public void OpenContainerPanel(Container container)
     {
+        ActiveContainer = container;
         this.container = container;
 
         if (container == null || container.inventory == null)
@@ -76,6 +80,9 @@ public class ContainerUI : MonoBehaviour
 
         if (containerPanel != null)
             containerPanel.SetActive(false);
+
+        ActiveContainer = null; // Limpa ao fechar o painel
+        containerPanel.SetActive(false);
 
         Debug.Log("[ContainerUI] Painel fechado.");
 
@@ -123,7 +130,7 @@ public class ContainerUI : MonoBehaviour
         {
             GameObject slotGO = Instantiate(slotPrefab, containerParent);
             InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Setup(invSlot);
+            slotUI.Setup(invSlot, InventoryUI.Instance, InventorySlotUI.InventoryOwnerType.Chest);
 
             Debug.Log($"[ContainerUI] Slot criado: {invSlot.item?.itemName ?? "Vazio"} (x{invSlot.quantity})");
         }
@@ -160,7 +167,7 @@ public class ContainerUI : MonoBehaviour
 
             GameObject slotGO = Instantiate(slotPrefab, containerParent);
             InventorySlotUI slotUI = slotGO.GetComponent<InventorySlotUI>();
-            slotUI.Setup(invSlot);
+            slotUI.Setup(invSlot, InventoryUI.Instance, InventorySlotUI.InventoryOwnerType.Chest);
 
             slotObjectsByType[type].Add(slotUI);
 
