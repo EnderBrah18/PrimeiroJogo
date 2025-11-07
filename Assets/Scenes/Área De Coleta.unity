@@ -349,7 +349,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0c59006c2c07bfb4e9fae4aec9f98edc, type: 2}
   - {fileID: 11400000, guid: 178005a576d8f1340b4d88b4e1f2c190, type: 2}
   capRoom: {fileID: 11400000, guid: 308d1eadddfbf2c4583ce97ff795d4c5, type: 2}
-  maxRooms: 10
+  maxRooms: 2
   gridSize: 50
   showGizmos: 1
   gizmoColor: {r: 0, g: 1, b: 1, a: 1}

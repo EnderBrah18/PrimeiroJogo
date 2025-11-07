@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System.Collections;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -34,15 +36,22 @@ public class DungeonGenerator : MonoBehaviour
     // ====================== GERAÇÃO ==============================
     // ============================================================
 
-    [ContextMenu("Gerar Dungeon")]
     public void Generate()
     {
+        // Em vez de rodar diretamente, enfileira como tarefa
+        StartCoroutine(GenerateCoroutine());
+    }
+
+    [ContextMenu("Gerar Dungeon")]
+
+    public IEnumerator GenerateCoroutine()
+    {
         ClearDungeon();
+        yield return null;
 
         placedRooms.Clear();
         openRooms.Clear();
 
-        // 🔹 Cria a sala inicial
         Room start = Instantiate(startRoom.prefab, Vector3.zero, Quaternion.identity, this.transform).GetComponent<Room>();
         start.gridPos = Vector2Int.zero;
         placedRooms.Add(Vector2Int.zero, start);
@@ -50,7 +59,11 @@ public class DungeonGenerator : MonoBehaviour
 
         int roomCount = 1;
 
-        // 🔹 Loop de geração
+        // 🔹 Gera o conteúdo do primeiro tile antes de seguir
+        TileSpawner startSpawner = start.GetComponentInChildren<TileSpawner>();
+        if (startSpawner != null)
+            yield return StartCoroutine(startSpawner.GenerateGridSpawnsCoroutine());
+
         while (roomCount < maxRooms && openRooms.Count > 0)
         {
             int randomIndex = Random.Range(0, openRooms.Count);
@@ -68,20 +81,13 @@ public class DungeonGenerator : MonoBehaviour
                 if (placedRooms.ContainsKey(newGrid))
                     continue;
 
-                // 🔹 Controle de densidade (opcional)
-                int neighborCount = CountNeighborRooms(newGrid);
-                float densityChance = Mathf.Lerp(1f, 0.6f, neighborCount / 4f);
-                if (Random.value > densityChance)
-                    continue;
-
-                // 🔹 Escolhe um prefab compatível
                 var candidate = PickCompatiblePrefab(connector.direction);
                 if (candidate == null)
                     continue;
 
-                bool placedSuccessfully = false;
+                bool placed = false;
 
-                for (int rot = 0; rot < 4 && !placedSuccessfully; rot++)
+                for (int rot = 0; rot < 4 && !placed; rot++)
                 {
                     int rotatedMask = MaskUtils.RotateMask(candidate.baseOpenMask, rot);
                     int required = MaskUtils.DirectionToMask(MaskUtils.Opposite(connector.direction));
@@ -101,22 +107,18 @@ public class DungeonGenerator : MonoBehaviour
                         continue;
                     }
 
-                    // 🔹 Alinha conectores
                     Vector3 offsetWorld = connector.transform.position - newOpposite.transform.position;
                     temp.transform.position += offsetWorld;
 
-                    // 🔹 Calcula posição de grade
                     newRoom.gridPos = new Vector2Int(
                         Mathf.RoundToInt(temp.transform.position.x / gridSize),
                         Mathf.RoundToInt(temp.transform.position.z / gridSize)
                     );
 
-                    // 🔹 Verifica sobreposição
                     bool overlaps = false;
                     foreach (var existingRoom in placedRooms.Values)
                     {
-                        float dist = Vector3.Distance(existingRoom.transform.position, newRoom.transform.position);
-                        if (dist < gridSize * 0.7f)
+                        if (Vector3.Distance(existingRoom.transform.position, newRoom.transform.position) < gridSize * 0.7f)
                         {
                             overlaps = true;
                             break;
@@ -129,25 +131,30 @@ public class DungeonGenerator : MonoBehaviour
                         continue;
                     }
 
-                    // 🔹 Marca conectores
                     connector.isConnected = true;
                     newOpposite.isConnected = true;
 
-                    // 🔹 Registra a nova sala
                     placedRooms.Add(newRoom.gridPos, newRoom);
                     openRooms.Add(newRoom);
-                    placedSuccessfully = true;
                     roomCount++;
+                    placed = true;
+
+                    // 🔹 Agora aguarda o TileSpawner desse novo tile terminar antes de continuar
+                    TileSpawner spawner = newRoom.GetComponentInChildren<TileSpawner>();
+                    if (spawner != null)
+                        yield return StartCoroutine(spawner.GenerateGridSpawnsCoroutine());
+
+                    // Pequena pausa visual entre tiles
+                    yield return null;
                 }
             }
         }
-
 
         FillOpenConnectors();
         ConnectAdjacentDoors();
         ForceCloseAllUnconnected();
 
-        Debug.Log($"✅ Dungeon gerada com {roomCount} salas (fechada completamente).");
+        Debug.Log($"✅ Dungeon gerada com {roomCount} salas conectadas (tiles e objetos).");
     }
 
     // ============================================================

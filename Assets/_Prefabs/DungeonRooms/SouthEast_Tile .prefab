@@ -43,14 +43,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 234760756174161783}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7f59504abd3e714999b9559d18971a6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSpawner
   gridSizeX: 100
   gridSizeZ: 100
-  cellSize: 5
+  cellSize: 10
   spawnablePrefabs:
   - {fileID: 3799797078878917697, guid: d1546669325630045987012a252d0507, type: 3}
   - {fileID: 5383237172540826018, guid: 8afbb902e0c97a4419bee2b1144304f4, type: 3}
