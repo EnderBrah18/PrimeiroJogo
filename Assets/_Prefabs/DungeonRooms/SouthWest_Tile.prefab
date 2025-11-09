@@ -260,7 +260,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3338254667495910470}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7f59504abd3e714999b9559d18971a6, type: 3}
   m_Name: 
@@ -268,11 +268,7 @@ MonoBehaviour:
   gridSizeX: 50
   gridSizeZ: 50
   cellSize: 9
-  spawnablePrefabs:
-  - {fileID: 3799797078878917697, guid: d1546669325630045987012a252d0507, type: 3}
-  - {fileID: 5383237172540826018, guid: 8afbb902e0c97a4419bee2b1144304f4, type: 3}
-  - {fileID: 716044455317952798, guid: 8d8c2bc0138fb7241a4b83de3ef34626, type: 3}
-  - {fileID: 4037159295331651004, guid: 049d214e0871b30478fa59acae967462, type: 3}
+  spawnablePrefabs: []
   spawnChance: 0.2
   useSeed: 0
   customSeed: 0

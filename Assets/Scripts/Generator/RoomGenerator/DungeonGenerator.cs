@@ -32,9 +32,21 @@ public class DungeonGenerator : MonoBehaviour
     private Dictionary<Vector2Int, Room> placedRooms = new Dictionary<Vector2Int, Room>();
     private List<Room> openRooms = new List<Room>();
 
+    private static bool mapaGerado = false;
+    public GameObject LoadingScreen;
+    private GameObject player_;
+
     // ============================================================
     // ====================== GERAÇÃO ==============================
     // ============================================================
+
+    private void Start()
+    {
+        LoadingScreen = GameObject.Find("LoadingScreen");
+        player_ = GameObject.FindGameObjectWithTag("Player");
+        mapaGerado = false;
+        StartCoroutine(GenerateCoroutine());
+    }
 
     public void Generate()
     {
@@ -53,6 +65,12 @@ public class DungeonGenerator : MonoBehaviour
         openRooms.Clear();
 
         Room start = Instantiate(startRoom.prefab, Vector3.zero, Quaternion.identity, this.transform).GetComponent<Room>();
+        // Snap da sala inicial para a grade (evita drift)
+        start.transform.position = new Vector3(
+            Mathf.Round(start.transform.position.x / gridSize) * gridSize,
+            start.transform.position.y,
+            Mathf.Round(start.transform.position.z / gridSize) * gridSize
+        );
         start.gridPos = Vector2Int.zero;
         placedRooms.Add(Vector2Int.zero, start);
         openRooms.Add(start);
@@ -78,7 +96,7 @@ public class DungeonGenerator : MonoBehaviour
                 Vector2Int offset = DirToOffset(connector.direction);
                 Vector2Int newGrid = current.gridPos + offset;
 
-                if (placedRooms.ContainsKey(newGrid))
+                if (placedRooms.ContainsKey(newGrid) || IsPositionOccupied(newGrid))
                     continue;
 
                 var candidate = PickCompatiblePrefab(connector.direction);
@@ -87,16 +105,12 @@ public class DungeonGenerator : MonoBehaviour
 
                 bool placed = false;
 
-                for (int rot = 0; rot < 4 && !placed; rot++)
+                int required = MaskUtils.DirectionToMask(MaskUtils.Opposite(connector.direction));
+
+                // Só aceita se o prefab tiver abertura compatível
+                if ((candidate.baseOpenMask & required) != 0)
                 {
-                    int rotatedMask = MaskUtils.RotateMask(candidate.baseOpenMask, rot);
-                    int required = MaskUtils.DirectionToMask(MaskUtils.Opposite(connector.direction));
-
-                    if ((rotatedMask & required) == 0)
-                        continue;
-
-                    Quaternion rotQ = Quaternion.Euler(0, rot * 90f, 0);
-                    GameObject temp = Instantiate(candidate.prefab, Vector3.zero, rotQ, this.transform);
+                    GameObject temp = Instantiate(candidate.prefab, Vector3.zero, Quaternion.identity, this.transform);
                     Room newRoom = temp.GetComponent<Room>();
 
                     Direction oppositeDir = MaskUtils.Opposite(connector.direction);
@@ -107,18 +121,28 @@ public class DungeonGenerator : MonoBehaviour
                         continue;
                     }
 
+                    // Alinhamento normal
                     Vector3 offsetWorld = connector.transform.position - newOpposite.transform.position;
                     temp.transform.position += offsetWorld;
+
+                    // Snap ao grid
+                    temp.transform.position = new Vector3(
+                        Mathf.Round(temp.transform.position.x / gridSize) * gridSize,
+                        temp.transform.position.y,
+                        Mathf.Round(temp.transform.position.z / gridSize) * gridSize
+                    );
 
                     newRoom.gridPos = new Vector2Int(
                         Mathf.RoundToInt(temp.transform.position.x / gridSize),
                         Mathf.RoundToInt(temp.transform.position.z / gridSize)
                     );
 
+                    // 🔹 Verifica sobreposição física antes de registrar
                     bool overlaps = false;
                     foreach (var existingRoom in placedRooms.Values)
                     {
-                        if (Vector3.Distance(existingRoom.transform.position, newRoom.transform.position) < gridSize * 0.7f)
+                        float dist = Vector3.Distance(existingRoom.transform.position, temp.transform.position);
+                        if (dist < gridSize * 0.4f)
                         {
                             overlaps = true;
                             break;
@@ -127,41 +151,44 @@ public class DungeonGenerator : MonoBehaviour
 
                     if (overlaps)
                     {
+                        Debug.LogWarning($"⚠ Sala '{candidate.prefab.name}' sobrepõe outra em {newRoom.gridPos} — destruída.");
                         DestroyImmediate(temp);
                         continue;
                     }
 
+                    // 🔹 Marca conectores e registra a nova sala
                     connector.isConnected = true;
                     newOpposite.isConnected = true;
 
                     placedRooms.Add(newRoom.gridPos, newRoom);
                     openRooms.Add(newRoom);
                     roomCount++;
+
                     placed = true;
 
-                    // 🔹 Agora aguarda o TileSpawner desse novo tile terminar antes de continuar
+                    // 🔹 Aguarda TileSpawner (se existir)
                     TileSpawner spawner = newRoom.GetComponentInChildren<TileSpawner>();
                     if (spawner != null)
                         yield return StartCoroutine(spawner.GenerateGridSpawnsCoroutine());
-
-                    // Pequena pausa visual entre tiles
-                    yield return null;
                 }
             }
         }
 
-        FillOpenConnectors();
+        yield return StartCoroutine(FillOpenConnectors());
         ConnectAdjacentDoors();
         ForceCloseAllUnconnected();
 
         Debug.Log($"✅ Dungeon gerada com {roomCount} salas conectadas (tiles e objetos).");
+        mapaGerado = true;
+
+        MapWasGenerated();
     }
 
     // ============================================================
     // ============= ETAPA 1 – FECHAMENTO AUTOMÁTICO ===============
     // ============================================================
 
-    private void FillOpenConnectors()
+    private IEnumerator FillOpenConnectors()
     {
         List<(RoomConnector, Vector2Int)> openEnds = new List<(RoomConnector, Vector2Int)>();
         int attempted = 0;     // quantas tentativas de criação de sala
@@ -238,6 +265,13 @@ public class DungeonGenerator : MonoBehaviour
             Vector3 offsetWorld = connector.transform.position - newOpposite.transform.position;
             go.transform.position += offsetWorld;
 
+            // Snap ao grid
+            go.transform.position = new Vector3(
+                Mathf.Round(go.transform.position.x / gridSize) * gridSize,
+                go.transform.position.y,
+                Mathf.Round(go.transform.position.z / gridSize) * gridSize
+            );
+
             // 5️⃣ Verifica sobreposição física após alinhar
             bool overlapsExisting = false;
             foreach (var kvp in placedRooms)
@@ -271,6 +305,10 @@ public class DungeonGenerator : MonoBehaviour
             // 8️⃣ Registra a nova sala no dicionário
             placedRooms[newRoom.gridPos] = newRoom;
             created++;
+
+            TileSpawner spawner = newRoom.GetComponentInChildren<TileSpawner>();
+            if (spawner != null)
+                yield return StartCoroutine(spawner.GenerateGridSpawnsCoroutine());
 
             Debug.Log($"✅ Nova sala criada: '{bestMatch.prefab.name}' em {newRoom.gridPos} (total agora: {placedRooms.Count})");
         }
@@ -448,31 +486,24 @@ public class DungeonGenerator : MonoBehaviour
 
     private RoomPrefabData FindRoomByMaskAndDirection(int neighborMask, Direction requiredOpenDir)
     {
-        RoomPrefabData best = null;
-        int bestScore = int.MaxValue;
+        List<RoomPrefabData> candidates = new List<RoomPrefabData>();
+        int requiredBit = MaskUtils.DirectionToMask(MaskUtils.Opposite(requiredOpenDir));
 
         foreach (var prefab in roomPrefabs)
         {
-            // Ignora se o prefab não tem conector na direção oposta ao que queremos conectar
             int prefabMask = prefab.baseOpenMask;
-            int requiredBit = MaskUtils.DirectionToMask(MaskUtils.Opposite(requiredOpenDir));
-
             if ((prefabMask & requiredBit) == 0)
                 continue;
 
-            // Avalia compatibilidade geral de vizinhança
-            int diff = Mathf.Abs(prefabMask - neighborMask);
-            if (diff < bestScore)
-            {
-                best = prefab;
-                bestScore = diff;
-            }
+            // Aceita se o prefab compartilha pelo menos uma abertura com a máscara de vizinhança
+            if (MaskUtils.CommonOpenings(prefabMask, neighborMask) > 0)
+                candidates.Add(prefab);
         }
 
-        if (best == null)
-            Debug.Log($"⚠ Nenhum prefab compatível com direção {requiredOpenDir} e máscara {neighborMask}");
+        if (candidates.Count == 0)
+            return null;
 
-        return best;
+        return candidates[Random.Range(0, candidates.Count)];
     }
 
     private RoomPrefabData PickCompatiblePrefab(Direction dir)
@@ -517,5 +548,37 @@ public class DungeonGenerator : MonoBehaviour
             if (kvp.Value == null) continue;
             Gizmos.DrawWireCube(kvp.Value.transform.position, Vector3.one * 5f);
         }
+    }
+
+    private bool IsPositionOccupied(Vector2Int grid)
+    {
+        foreach (var r in placedRooms.Values)
+        {
+            Vector2Int g = new Vector2Int(
+                Mathf.RoundToInt(r.transform.position.x / gridSize),
+                Mathf.RoundToInt(r.transform.position.z / gridSize)
+            );
+            if (g == grid) return true;
+        }
+        return false;
+    }
+
+    public void MapWasGenerated()
+    {
+        if (!mapaGerado)
+        {
+            Debug.Log("O mapa ainda não foi gerado.");
+            return;
+        }
+
+        Debug.Log("O mapa já foi gerado.");
+
+        if (player_ != null)
+        {
+            player_.transform.position = new Vector3(0, 15, 0);
+            Debug.Log("Player movido para o centro do mapa.");
+        }
+
+        LoadingScreen.SetActive(false);
     }
 }

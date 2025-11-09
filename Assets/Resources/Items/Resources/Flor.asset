@@ -20,7 +20,7 @@ MonoBehaviour:
   itemType: 0
   Weight: 1
   resourceName: FlorAzul
-  requiredToolType: 3
+  requiredToolType: 0
   requiredToolLevel: 0
   baseCollectTime: 0
   type: 0
