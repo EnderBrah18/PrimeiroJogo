@@ -46,8 +46,16 @@ public class TileSpawner : MonoBehaviour
                     startZ + z * cellSize
                 );
 
-                if (Physics.Raycast(spawnPos + Vector3.up * 10, Vector3.down, out RaycastHit hit, 20f))
+                if (Physics.Raycast(spawnPos + Vector3.up * 100f, Vector3.down, out RaycastHit hit, 200f, LayerMask.GetMask("Default", "Terrain")))
+                {
                     spawnPos.y = hit.point.y + yOffset;
+                }
+                else
+                {
+                    spawnPos.y = Terrain.activeTerrain != null
+                        ? Terrain.activeTerrain.SampleHeight(spawnPos) + Terrain.activeTerrain.transform.position.y + yOffset
+                        : origin.y + yOffset;
+                }
 
                 GameObject prefab = spawnablePrefabs[Random.Range(0, spawnablePrefabs.Count)];
                 Instantiate(prefab, spawnPos, Quaternion.identity, transform);

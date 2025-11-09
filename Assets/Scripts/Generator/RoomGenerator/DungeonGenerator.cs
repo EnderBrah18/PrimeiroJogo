@@ -164,6 +164,11 @@ public class DungeonGenerator : MonoBehaviour
     private void FillOpenConnectors()
     {
         List<(RoomConnector, Vector2Int)> openEnds = new List<(RoomConnector, Vector2Int)>();
+        int attempted = 0;     // quantas tentativas de criação de sala
+        int created = 0;       // quantas salas realmente criadas
+        int destroyed = 0;     // quantas foram destruídas por sobreposição ou erro
+
+        Debug.Log($"🧩 [FillOpenConnectors] Iniciando preenchimento — salas existentes: {placedRooms.Count}");
 
         // 1️⃣ Coleta de conectores não conectados
         foreach (var kvp in placedRooms)
@@ -182,14 +187,21 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
+        Debug.Log($"🔍 {openEnds.Count} conectores abertos identificados para verificação.");
+
         // 2️⃣ Tenta preencher cada conector aberto
         foreach (var entry in openEnds)
         {
+            attempted++;
+
             var connector = entry.Item1;
             var gridPos = entry.Item2;
 
             if (placedRooms.ContainsKey(gridPos))
+            {
+                Debug.Log($"⚠ Grid {gridPos} já ocupado, pulando.");
                 continue;
+            }
 
             // Determina máscara dos vizinhos
             int neighborMask = 0;
@@ -200,8 +212,12 @@ public class DungeonGenerator : MonoBehaviour
                     neighborMask |= MaskUtils.DirectionToMask(dir);
             }
 
-            RoomPrefabData bestMatch = FindRoomByMask(neighborMask);
-            if (bestMatch == null) continue;
+            RoomPrefabData bestMatch = FindRoomByMaskAndDirection(neighborMask, connector.direction);
+            if (bestMatch == null)
+            {
+                Debug.Log($"⚠ Nenhum prefab compatível encontrado para o conector em {gridPos}.");
+                continue;
+            }
 
             // 3️⃣ Instancia o prefab sem confiar no grid
             GameObject go = Instantiate(bestMatch.prefab, Vector3.zero, Quaternion.identity, this.transform);
@@ -212,7 +228,9 @@ public class DungeonGenerator : MonoBehaviour
 
             if (newOpposite == null)
             {
+                Debug.LogWarning($"❌ Prefab '{bestMatch.prefab.name}' não tem conector oposto ({fromDir}) — destruído.");
                 DestroyImmediate(go);
+                destroyed++;
                 continue;
             }
 
@@ -234,7 +252,9 @@ public class DungeonGenerator : MonoBehaviour
 
             if (overlapsExisting)
             {
+                Debug.LogWarning($"⚠ Sala '{bestMatch.prefab.name}' em {gridPos} sobrepõe outra — destruída.");
                 DestroyImmediate(go);
+                destroyed++;
                 continue;
             }
 
@@ -250,7 +270,12 @@ public class DungeonGenerator : MonoBehaviour
 
             // 8️⃣ Registra a nova sala no dicionário
             placedRooms[newRoom.gridPos] = newRoom;
+            created++;
+
+            Debug.Log($"✅ Nova sala criada: '{bestMatch.prefab.name}' em {newRoom.gridPos} (total agora: {placedRooms.Count})");
         }
+
+        Debug.Log($"🏁 [FillOpenConnectors] Finalizado — tentativas: {attempted}, criadas: {created}, destruídas: {destroyed}, total final de salas: {placedRooms.Count}");
     }
 
     // ============================================================
@@ -294,8 +319,10 @@ public class DungeonGenerator : MonoBehaviour
             return;
         }
 
+        int capsCreated = 0;
         List<(RoomConnector, Vector2Int)> remaining = new List<(RoomConnector, Vector2Int)>();
 
+        // 🔹 Coleta todos os conectores abertos
         foreach (var kvp in placedRooms)
         {
             Room r = kvp.Value;
@@ -310,6 +337,7 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
+        // 🔹 Para cada conector aberto, instancia um cap se possível
         foreach (var entry in remaining)
         {
             var connector = entry.Item1;
@@ -317,25 +345,61 @@ public class DungeonGenerator : MonoBehaviour
 
             if (placedRooms.ContainsKey(grid)) continue;
 
+            // Instancia o prefab de fechamento
             GameObject go = Instantiate(capRoom.prefab, Vector3.zero, Quaternion.identity, this.transform);
             Room cap = go.GetComponent<Room>();
-            cap.gridPos = grid;
 
             Direction fromDir = MaskUtils.Opposite(connector.direction);
             RoomConnector capCon = cap.GetConnector(fromDir);
 
-            if (capCon != null)
+            if (capCon == null)
             {
-                Vector3 offsetWorld = connector.transform.position - capCon.transform.position;
-                go.transform.position += offsetWorld;
-                connector.isConnected = true;
-                capCon.isConnected = true;
+                Debug.LogWarning($"⚠ Cap {cap.name} não possui conector oposto esperado ({fromDir}) — destruído.");
+                DestroyImmediate(go);
+                continue;
             }
 
+            // 🔹 Calcula offset e aplica posição
+            Vector3 offsetWorld = connector.transform.position - capCon.transform.position;
+            go.transform.position += offsetWorld;
+
+            // 🔹 Snap ao grid (evita drift acumulado)
+            go.transform.position = new Vector3(
+                Mathf.Round(go.transform.position.x / gridSize) * gridSize,
+                go.transform.position.y,
+                Mathf.Round(go.transform.position.z / gridSize) * gridSize
+            );
+
+            // 🔹 Verifica sobreposição física
+            bool overlaps = false;
+            foreach (var kvp in placedRooms)
+            {
+                float dist = Vector3.Distance(go.transform.position, kvp.Value.transform.position);
+                if (dist < gridSize * 0.4f)
+                {
+                    overlaps = true;
+                    break;
+                }
+            }
+
+            if (overlaps)
+            {
+                Debug.LogWarning($"⚠ Cap {cap.name} sobreposto — removido.");
+                DestroyImmediate(go);
+                continue;
+            }
+
+            // 🔹 Marca conectores como conectados
+            connector.isConnected = true;
+            capCon.isConnected = true;
+
+            // 🔹 Registra a nova “sala” de fechamento
+            cap.gridPos = grid;
             placedRooms.Add(grid, cap);
+            capsCreated++;
         }
 
-        Debug.Log($"🔹 Todas as aberturas restantes foram fechadas com {capRoom.prefab.name}.");
+        Debug.Log($"✅ {capsCreated} caps criados para fechar aberturas restantes ({capRoom.prefab.name}).");
     }
 
     // ============================================================
@@ -382,20 +446,32 @@ public class DungeonGenerator : MonoBehaviour
         return count;
     }
 
-    private RoomPrefabData FindRoomByMask(int mask)
+    private RoomPrefabData FindRoomByMaskAndDirection(int neighborMask, Direction requiredOpenDir)
     {
         RoomPrefabData best = null;
         int bestScore = int.MaxValue;
 
         foreach (var prefab in roomPrefabs)
         {
-            int diff = Mathf.Abs(prefab.baseOpenMask - mask);
+            // Ignora se o prefab não tem conector na direção oposta ao que queremos conectar
+            int prefabMask = prefab.baseOpenMask;
+            int requiredBit = MaskUtils.DirectionToMask(MaskUtils.Opposite(requiredOpenDir));
+
+            if ((prefabMask & requiredBit) == 0)
+                continue;
+
+            // Avalia compatibilidade geral de vizinhança
+            int diff = Mathf.Abs(prefabMask - neighborMask);
             if (diff < bestScore)
             {
                 best = prefab;
                 bestScore = diff;
             }
         }
+
+        if (best == null)
+            Debug.Log($"⚠ Nenhum prefab compatível com direção {requiredOpenDir} e máscara {neighborMask}");
+
         return best;
     }
 

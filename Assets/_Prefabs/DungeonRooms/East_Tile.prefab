@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 211867820690494834}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -500, y: 0, z: 0}
+  m_LocalPosition: {x: -250, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -187,7 +187,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 100, y: 1, z: 100}
+  m_LocalScale: {x: 50, y: 1, z: 50}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2399545612107848376}
@@ -407,7 +407,7 @@ Transform:
   m_GameObject: {fileID: 2284588720149648019}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 500}
+  m_LocalPosition: {x: 0, y: 0, z: 250}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -477,15 +477,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d7f59504abd3e714999b9559d18971a6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSpawner
-  gridSizeX: 100
-  gridSizeZ: 100
-  cellSize: 10
+  gridSizeX: 50
+  gridSizeZ: 50
+  cellSize: 5
   spawnablePrefabs:
   - {fileID: 3799797078878917697, guid: d1546669325630045987012a252d0507, type: 3}
   - {fileID: 5383237172540826018, guid: 8afbb902e0c97a4419bee2b1144304f4, type: 3}
   - {fileID: 716044455317952798, guid: 8d8c2bc0138fb7241a4b83de3ef34626, type: 3}
   - {fileID: 4037159295331651004, guid: 049d214e0871b30478fa59acae967462, type: 3}
-  spawnChance: 0.25
+  spawnChance: 0.2
   useSeed: 0
   customSeed: 0
   yOffset: 0.1
@@ -643,7 +643,7 @@ Transform:
   m_GameObject: {fileID: 7972588742939282741}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 500, y: 0, z: 0}
+  m_LocalPosition: {x: 250, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
