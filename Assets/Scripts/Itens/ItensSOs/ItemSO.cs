@@ -8,6 +8,7 @@ public abstract class ItemSO : ScriptableObject
     public string itemName;
     public Sprite icon;
     public int amount;
+    public int cost;
     [TextArea]
     public string description;
     public ItemType itemType;
