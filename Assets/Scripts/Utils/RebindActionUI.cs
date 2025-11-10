@@ -8,76 +8,36 @@ using UnityEngine.UI;
 public class RebindMenu : MonoBehaviour
 {
     [Serializable]
-    public class ActionButtonPrefab
+    public class ActionButtonReference
     {
-        public string actionName;       // Nome da ação no Input System
-        public GameObject buttonPrefab; // Prefab do botão com TMP_Text
+        public string actionName;  // Nome da ação
+        public Button button;      // Botão já existente na UI
+        public TMP_Text label;     // Texto mostrado no botão
     }
 
-    [SerializeField] private Transform contentParent; // Pai para os botões
-    [SerializeField] private List<ActionButtonPrefab> actionsToRebind;
+    [SerializeField] private List<ActionButtonReference> actionsToRebind;
 
     private void Start()
     {
-        foreach (var actionData in actionsToRebind)
+        foreach (var actionRef in actionsToRebind)
         {
-            var action = InputManager.Instance.GetAction(actionData.actionName);
+            var action = InputManager.Instance.GetAction(actionRef.actionName);
             if (action == null) continue;
 
-            if (action.controls.Count > 0 && action.controls[0].device is Keyboard && action.bindings[0].isComposite)
+            int bindingIndex = FindFirstNonComposite(action);
+            if (bindingIndex < 0) continue;
+
+            // Atualiza o texto inicial
+            actionRef.label.text = action.GetBindingDisplayString(bindingIndex);
+
+            // Configura o botão
+            actionRef.button.onClick.AddListener(() =>
             {
-                // É um composite (como Move)
-                CreateCompositeButtons(action, actionData.buttonPrefab);
-            }
-            else
-            {
-                // Ação simples
-                CreateSimpleButton(action, actionData.buttonPrefab);
-            }
-        }
-    }
-
-    private void CreateSimpleButton(InputAction action, GameObject prefab)
-    {
-        var buttonGO = Instantiate(prefab, contentParent);
-        var text = buttonGO.GetComponentInChildren<TMP_Text>();
-        var button = buttonGO.GetComponent<Button>();
-
-        int bindingIndex = FindFirstNonComposite(action);
-        text.text = action.GetBindingDisplayString(bindingIndex);
-
-        button.onClick.AddListener(() =>
-        {
-            button.interactable = false;
-            InputManager.Instance.StartRebind(action.name, bindingIndex, success =>
-            {
-                button.interactable = true;
-                text.text = action.GetBindingDisplayString(bindingIndex);
-            });
-        });
-    }
-
-    private void CreateCompositeButtons(InputAction action, GameObject prefab)
-    {
-        for (int i = 0; i < action.bindings.Count; i++)
-        {
-            if (!action.bindings[i].isPartOfComposite || action.bindings[i].isComposite) continue;
-
-            var buttonGO = Instantiate(prefab, contentParent);
-            var text = buttonGO.GetComponentInChildren<TMP_Text>();
-            var button = buttonGO.GetComponent<Button>();
-
-            string displayName = $"{action.name} {action.bindings[i].name}";
-            text.text = $"{displayName}: {action.GetBindingDisplayString(i)}";
-
-            int bindingIndex = i;
-            button.onClick.AddListener(() =>
-            {
-                button.interactable = false;
+                actionRef.button.interactable = false;
                 InputManager.Instance.StartRebind(action.name, bindingIndex, success =>
                 {
-                    button.interactable = true;
-                    text.text = $"{displayName}: {action.GetBindingDisplayString(bindingIndex)}";
+                    actionRef.button.interactable = true;
+                    actionRef.label.text = action.GetBindingDisplayString(bindingIndex);
                 });
             });
         }

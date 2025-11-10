@@ -103,8 +103,6 @@ public class DungeonGenerator : MonoBehaviour
                 if (candidate == null)
                     continue;
 
-                bool placed = false;
-
                 int required = MaskUtils.DirectionToMask(MaskUtils.Opposite(connector.direction));
 
                 // Só aceita se o prefab tiver abertura compatível
@@ -164,7 +162,6 @@ public class DungeonGenerator : MonoBehaviour
                     openRooms.Add(newRoom);
                     roomCount++;
 
-                    placed = true;
 
                     // 🔹 Aguarda TileSpawner (se existir)
                     TileSpawner spawner = newRoom.GetComponentInChildren<TileSpawner>();

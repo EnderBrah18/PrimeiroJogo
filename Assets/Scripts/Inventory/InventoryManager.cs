@@ -31,4 +31,5 @@ public class InventoryManager : MonoBehaviour
             cameraScript.HandleInventoryToggled(isOpen); // Libera ou bloqueia o mouse/câmera
         }
     }
+
 }
