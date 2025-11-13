@@ -37,6 +37,19 @@ public class Player : MonoBehaviour
     [SerializeField] private float vSpeed = 0f;
     [SerializeField] private float gravity = -9.8f;
 
+    public float MoveSpeed => moveSpeed;
+    public float JumpForce => jumpForce;
+
+    public void SetMoveSpeed(float value)
+    {
+        moveSpeed = Mathf.Max(0, value);
+    }
+
+    public void SetJumpForce(float value)
+    {
+        jumpForce = Mathf.Max(0, value);
+    }
+
     private float groundedGraceTime = 0.2f;
     private float lastGroundedTime;
     private bool isReallyGrounded => Time.time - lastGroundedTime <= groundedGraceTime;

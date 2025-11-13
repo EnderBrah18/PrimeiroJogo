@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Hoe
   m_EditorClassIdentifier: 
   id: Hoe_1
-  itemName: 
+  itemName: Enxada Da Vida
   icon: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
   amount: 0
+  cost: 0
   description: "Uma enxada que tr\xE1z a morte."
   itemType: 1
   Weight: 5
