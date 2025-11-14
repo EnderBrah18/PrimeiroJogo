@@ -1,13 +1,109 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using System.Collections;
 
 public class SceneLoader : MonoBehaviour
 {
-    // Nome da cena a carregar (deve estar adicionada no Build Settings)
-    public string nomeCena;
+    public static SceneLoader Instance;
 
-    public void CarregarCena()
+    [Header("Configurações")]
+    public string mainMenuSceneName = "MenuPrincipal";
+    public string loadingScreenName = "LoadingScreen";
+
+    public GameObject loadingScreen;
+    private Slider progressBar;
+
+    private bool sceneReadyToActivate = false;
+    private bool manualMode = false;
+
+    private void Awake()
     {
-        SceneManager.LoadScene(nomeCena);
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        TryFindLoadingScreen();
+    }
+
+    private void TryFindLoadingScreen()
+    {
+        GameObject found = GameObject.Find(loadingScreenName);
+
+        if (found != null)
+        {
+            loadingScreen = found;
+            progressBar = loadingScreen.GetComponentInChildren<Slider>();
+            loadingScreen.SetActive(false);
+        }
+    }
+
+    // Carrega cena, opcional modo manual
+    public void LoadScene(string sceneName, string spawnPointID = "Default", bool manual = false)
+    {
+        PlayerSpawnInfo.targetSpawnPoint = spawnPointID;
+        manualMode = manual;
+        sceneReadyToActivate = !manual; // se manual = false, ativa automaticamente
+
+        string current = SceneManager.GetActiveScene().name;
+
+        if (current == mainMenuSceneName)
+        {
+            SceneManager.LoadScene(sceneName);
+            return;
+        }
+
+        StartCoroutine(LoadAsync(sceneName));
+    }
+
+    private IEnumerator LoadAsync(string sceneName)
+    {
+        if (loadingScreen == null)
+            TryFindLoadingScreen();
+
+        if (loadingScreen != null)
+            loadingScreen.SetActive(true);
+
+        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName);
+        op.allowSceneActivation = true; // deixa a cena ativa imediatamente
+
+        while (!op.isDone)
+        {
+            float progress = Mathf.Clamp01(op.progress / 0.9f);
+            if (progressBar != null)
+                progressBar.value = progress;
+
+            yield return null;
+        }
+
+        // Se for modo manual, a LoadingScreen fica até você chamar HideLoadingScreen()
+        // Caso automático (ex: cena principal), desativa a LoadingScreen imediatamente
+        if (!manualMode && loadingScreen != null)
+            loadingScreen.SetActive(false);
+    }
+
+    // Para cenas em modo manual
+    public void SceneIsReady()
+    {
+        sceneReadyToActivate = true;
+        if (loadingScreen != null)
+            loadingScreen.SetActive(false);
+    }
+
+    // Método antigo ainda disponível
+    public void HideLoadingScreen()
+    {
+        if (loadingScreen != null)
+            loadingScreen.SetActive(false);
     }
 }

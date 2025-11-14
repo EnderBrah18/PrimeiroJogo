@@ -10,6 +10,7 @@ public class ContainerInteract : MonoBehaviour
     [SerializeField] public InputActionReference interactAction;
 
     [Header("UI")]
+    private GameObject ContainerManager;
     public ContainerUI containerUI;
 
     private Container container;
@@ -18,7 +19,9 @@ public class ContainerInteract : MonoBehaviour
 
     private void Awake()
     {
+        ContainerManager = GameObject.Find("ContainerManager");
         container = GetComponent<Container>();
+        containerUI = ContainerManager.GetComponent<ContainerUI>();
 
         // Garantir que o collider seja trigger
         Collider col = GetComponent<Collider>();

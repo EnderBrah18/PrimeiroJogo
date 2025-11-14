@@ -94,6 +94,12 @@ public class ShopBase : MonoBehaviour
                     SellItem(localRef);
             });
         }
+
+        if (player != null)
+        {
+            player.transform.position = new Vector3(300, 15, 235);
+            Debug.Log("Player movido para o centro do mapa.");
+        }
     }
 
     // --- Compra ---

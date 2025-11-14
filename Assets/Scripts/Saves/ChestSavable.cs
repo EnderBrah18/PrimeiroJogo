@@ -15,6 +15,7 @@ public class ChestSavable : SavableEntity
 
     [SerializeField] private Container container; // referencia ao Inventory do baú
     [SerializeField] private ContainerUI containerUI; // se tiver UI específica
+    private GameObject ContainerManager;
 
     private Inventory chestInventory => container != null ? container.inventory : null;
 
@@ -23,9 +24,18 @@ public class ChestSavable : SavableEntity
         if (container == null)
         {
             container = GetComponent<Container>();
+            containerUI = ContainerManager.GetComponent<ContainerUI>();
             if (container == null)
                 Debug.LogError("ChestSavable precisa ter referência ao Container!");
         }
+
+        if (containerUI == null)
+        {
+            ContainerManager = GameObject.Find("ContainerManager");
+            containerUI = ContainerManager.GetComponent<ContainerUI>();
+        }
+
+        
     }
 
     private void Start()

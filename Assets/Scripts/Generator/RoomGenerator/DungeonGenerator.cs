@@ -33,8 +33,9 @@ public class DungeonGenerator : MonoBehaviour
     private List<Room> openRooms = new List<Room>();
 
     private static bool mapaGerado = false;
-    public GameObject LoadingScreen;
+    public CanvasGroup LoadingScreen;
     private GameObject player_;
+    private bool SceneReadyToActivate = false;
 
     // ============================================================
     // ====================== GERAÇÃO ==============================
@@ -42,9 +43,14 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Start()
     {
-        LoadingScreen = GameObject.Find("LoadingScreen");
         player_ = GameObject.FindGameObjectWithTag("Player");
         mapaGerado = false;
+
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.loadingScreen?.SetActive(true);
+        }
+
         StartCoroutine(GenerateCoroutine());
     }
 
@@ -576,6 +582,8 @@ public class DungeonGenerator : MonoBehaviour
             Debug.Log("Player movido para o centro do mapa.");
         }
 
-        LoadingScreen.SetActive(false);
+        // Esconde a LoadingScreen somente quando a dungeon terminar
+        if (SceneLoader.Instance != null)
+            SceneLoader.Instance.HideLoadingScreen();
     }
 }
