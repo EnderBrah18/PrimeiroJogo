@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static ShopManager;
 
 public class InventoryManager : MonoBehaviour
 {
@@ -18,7 +19,8 @@ public class InventoryManager : MonoBehaviour
         // Exemplo: tecla I para abrir/fechar inventário
         if (toggleInventoryAction.action.WasPressedThisFrame())
         {
-            ToggleInventory();
+            if (!UIManager.IsShopOpen)  // só abre se a loja não estiver aberta
+                ToggleInventory();
         }
     }
 

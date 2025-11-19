@@ -300,4 +300,9 @@ public class ShopBase : MonoBehaviour
                 break;
         }
     }   
+
+    public void CloseShop()
+    {
+        shopManager.CloseAll();
+    }
 }
