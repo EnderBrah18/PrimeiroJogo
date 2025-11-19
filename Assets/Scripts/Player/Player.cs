@@ -44,7 +44,6 @@ public class Player : MonoBehaviour
 
     public PlayerStatsSO Stats => stats;
 
-    [HideInInspector] public PlayerStatsSO runtimeStats;
 
     public float MoveSpeed
     {
@@ -140,8 +139,6 @@ public class Player : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
-        runtimeStats = ScriptableObject.CreateInstance<PlayerStatsSO>();
-        runtimeStats.LoadData(stats.SaveData());
 
         if (stats != null)
             SaveSystem.Instance.RegisterSOSavable(stats);

@@ -39,10 +39,15 @@ public class DungeonGenerator : MonoBehaviour
     // ============================================================
     // ====================== GERAÇÃO ==============================
     // ============================================================
+    private void Awake()
+    {
+        player_ = GameObject.FindGameObjectWithTag("Player");
+        player_.transform.position = new Vector3(0, 15, 0);
+        Player.Instance?.SetMovementBlocked(true);
+    }
 
     private void Start()
     {
-        player_ = GameObject.FindGameObjectWithTag("Player");
         mapaGerado = false;
 
         if (SceneLoader.Instance != null)
@@ -574,12 +579,7 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         Debug.Log("O mapa já foi gerado.");
-
-        if (player_ != null)
-        {
-            player_.transform.position = new Vector3(0, 15, 0);
-            Debug.Log("Player movido para o centro do mapa.");
-        }
+        Player.Instance?.SetMovementBlocked(false);
 
         // Esconde a LoadingScreen somente quando a dungeon terminar
         if (SceneLoader.Instance != null)

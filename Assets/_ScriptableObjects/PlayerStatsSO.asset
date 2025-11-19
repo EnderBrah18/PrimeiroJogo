@@ -18,7 +18,7 @@ MonoBehaviour:
     turnSpeed: 10
   stamina:
     maxStamina: 100
-    staminaRegenRate: 15
+    staminaRegenRate: 95
     staminaSprintCost: 20
     staminaClimbCost: 10
     staminaJumpCost: 15

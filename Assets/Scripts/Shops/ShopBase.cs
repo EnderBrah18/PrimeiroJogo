@@ -10,6 +10,9 @@ public class ShopBase : MonoBehaviour
     public enum ShopType { Sell, Equipment, Upgrade }
     public ShopType shopType;
 
+    [Header("Dados do Shop")]
+    [SerializeField] protected ShopSO shopData;  // ScriptableObject do vendedor
+
     public ShopManager shopManager;
 
     [Serializable]
@@ -84,11 +87,41 @@ public class ShopBase : MonoBehaviour
 
         inventory = playerStats.playerInventory.inventory;
         inventoryUI = inventoryManager.GetComponent<InventoryUI>();
+        SaveSystem.Instance.RegisterSOSavable(shopData);
+
+    }
+
+    public void SaveShopToSO()
+    {
+        if (shopData == null)
+        {
+            Debug.LogWarning("ShopSO não atribuído!");
+            return;
+        }
+
+        shopData.items.Clear();
+
+        foreach (var refItem in shopItems)
+        {
+            if (refItem.item == null) continue;
+
+            ShopSO.ShopItem soItem = new ShopSO.ShopItem
+            {
+                item = refItem.item,
+                price = refItem.item.cost,
+                stock = refItem.useBuyLimit ? refItem.buyLimit - refItem.currentBuys : -1
+            };
+
+            shopData.items.Add(soItem);
+        }
+
+        Debug.Log("ShopBase salvo no SO!");
     }
 
     private void Start()
     {
         InitializeShop();
+        SaveShopToSO();
 
         // --- Configura cada botão da loja ---
         foreach (var refItem in shopItems)
@@ -175,11 +208,17 @@ public class ShopBase : MonoBehaviour
         if (inventory.AddItem(refItem.item, refItem.amount))
         {
             if (refItem.useBuyLimit)
+            {
                 refItem.currentBuys += refItem.amount;
+
+                // Atualiza estoque no SO
+                var soEntry = shopData.GetItem(refItem.item);
+                if (soEntry != null && soEntry.stock > 0)
+                    soEntry.stock -= refItem.amount;
+            }
 
             inventoryUI.UpdateCoinsUI();
             ShowFeedback(refItem, $"Comprado {refItem.amount}x {refItem.item.itemName}");
-            Debug.Log($"Comprado {refItem.amount}x {refItem.item.itemName} ({refItem.currentBuys}/{refItem.buyLimit})");
             return true;
         }
 

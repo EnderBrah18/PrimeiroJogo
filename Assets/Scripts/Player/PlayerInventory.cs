@@ -25,7 +25,6 @@ public class PlayerInventory : MonoBehaviour, ISavable
 
     // Referência ao ScriptableObject do player
     public PlayerStatsSO playerStatsSO;
-    [HideInInspector] public PlayerStatsSO runtimeStats;
 
     // Lista de itens iniciais configuráveis no Inspector
     public List<StartingItem> startingItems;
@@ -56,9 +55,6 @@ public class PlayerInventory : MonoBehaviour, ISavable
             if (entry.item != null)
                 inventory.AddItem(entry.item, entry.amount);
         }
-        runtimeStats = ScriptableObject.CreateInstance<PlayerStatsSO>();
-        runtimeStats.LoadData(playerStatsSO.SaveData());
-        inventoryUI?.Setup(inventory, player);
     }
 
     public bool SpendCoins(int amount)

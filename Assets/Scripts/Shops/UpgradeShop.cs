@@ -31,7 +31,8 @@ public class UpgradeShop : ShopBase
         DashDistance,
         DashCooldown,
         MaxStamina,
-        StaminaRegenRate
+        StaminaRegenRate,
+        MaxWeight
         // Adicione mais upgrades aqui
     }
 
@@ -85,6 +86,26 @@ public class UpgradeShop : ShopBase
             }
         }
 
+        if (upg.useBuyLimit)
+        {
+            upg.currentBuys++;
+
+            var progress = shopData.upgradesPurchased.Find(x => x.upgradeName == upg.upgradeName);
+            if (progress == null)
+            {
+                progress = new ShopSO.UpgradeProgress
+                {
+                    upgradeName = upg.upgradeName,
+                    currentBuys = upg.currentBuys
+                };
+                shopData.upgradesPurchased.Add(progress);
+            }
+            else
+            {
+                progress.currentBuys = upg.currentBuys;
+            }
+        }
+
         // 💰 Verifica se há moedas suficientes
         if (!playerInventoryRef.SpendCoins(upg.cost))
         {
@@ -113,7 +134,7 @@ public class UpgradeShop : ShopBase
                 playerStatsSO.movement.baseMoveSpeed += upg.value;
                 break;
             case UpgradeType.JumpForce:
-                playerStatsSO.movement.baseJumpForce += upg.value; // ou crie SetJumpForce se quiser
+                playerStatsSO.movement.baseJumpForce += upg.value;
                 break;
             case UpgradeType.DashDistance:
                 playerStatsSO.dash.dashDistance += upg.value;
@@ -126,6 +147,11 @@ public class UpgradeShop : ShopBase
                 break;
             case UpgradeType.StaminaRegenRate:
                 playerStatsSO.stamina.staminaRegenRate += upg.value;
+                break;
+            case UpgradeType.MaxWeight:
+                playerStatsSO.inventory.maxWeight += upg.value;
+                inventory.maxWeight = playerStatsSO.inventory.maxWeight;
+                inventoryUI.UpdatePesoUI();
                 break;
         }
 
