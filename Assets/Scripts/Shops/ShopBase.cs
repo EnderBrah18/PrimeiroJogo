@@ -6,20 +6,26 @@ using TMPro;
 
 public class ShopBase : MonoBehaviour
 {
+    public enum ShopType { Sell, Equipment, Upgrade }
+    public ShopType shopType;
+
+    public ShopManager shopManager;
+
     [Serializable]
     public class ShopItemReference
     {
         public ItemSO item;          // Item da loja
         public Button button;        // Botão já existente na UI
         public TMP_Text label;       // Texto que mostra o nome/preço
-        public TMP_Text feedback;    // (Opcional) texto para mensagens tipo "Sem moedas"
+        public TMP_Text feedback;    // Texto opcional para mensagens
+        public Image icon;           // <<< ADICIONADO: imagem do item
         public bool isBuyButton = true;
         public int amount = 1;
 
         [Header("Limite de Compra")]
-        public bool useBuyLimit = false;     // Se o item/slot tem limite
-        public int buyLimit = 0;             // Máximo de compras permitidas
-        [HideInInspector] public int currentBuys = 0;         // Quantas vezes já foi comprado
+        public bool useBuyLimit = false;
+        public int buyLimit = 0;
+        [HideInInspector] public int currentBuys = 0;
     }
 
     [Header("Referências do Jogador")]
@@ -42,14 +48,23 @@ public class ShopBase : MonoBehaviour
     {
         if (player == null)
         {
-            Debug.LogError("Player não atribuído no ShopBase!");
-            return;
+            Player foundPlayer = FindFirstObjectByType<Player>();
+
+            if (foundPlayer != null)
+                player = foundPlayer.gameObject;
+            else
+                Debug.LogError("ShopBase não encontrou nenhum Player na cena!");
         }
 
+        // 3. InventoryManager automático
         if (inventoryManager == null)
         {
-            Debug.LogError("InventoryManager não atribuído no ShopBase!");
-            return;
+            InventoryUI foundInv = FindFirstObjectByType<InventoryUI>();
+
+            if (foundInv != null)
+                inventoryManager = foundInv.gameObject;
+            else
+                Debug.LogError("ShopBase não encontrou InventoryManager (InventoryUI) na cena!");
         }
 
         playerStats = player.GetComponent<Player>();
@@ -79,6 +94,12 @@ public class ShopBase : MonoBehaviour
                 string priceText = showPrices ? $" - {refItem.item.cost}{coinSymbol}" : "";
                 refItem.label.text = $"{refItem.item.itemName}{priceText}";
             }
+
+            if (refItem.icon != null && refItem.item.icon != null)
+            {
+                refItem.icon.sprite = refItem.item.icon;
+            }
+
 
             // Garante que não adiciona listeners duplicados
             refItem.button.onClick.RemoveAllListeners();
@@ -208,4 +229,28 @@ public class ShopBase : MonoBehaviour
             refItem.currentBuys = 0;
         }
     }
+
+    public void OpenShop()
+    {
+        if (shopManager == null)
+        {
+            Debug.LogWarning("ShopManager não atribuído no vendedor!");
+            return;
+        }
+
+        switch (shopType)
+        {
+            case ShopType.Sell:
+                shopManager.ToggleSellShop();
+                break;
+
+            case ShopType.Equipment:
+                shopManager.ToggleEquipmentShop();
+                break;
+
+            case ShopType.Upgrade:
+                shopManager.ToggleUpgradeShop();
+                break;
+        }
+    }   
 }

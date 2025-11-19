@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceSO
   id: Small_Rocks
   itemName: Pedrinhas
-  icon: {fileID: 0}
+  icon: {fileID: 21300074, guid: bb76618f4bae74c83b9d6654d0b2a47e, type: 3}
   amount: 4
+  cost: 1
   description: 
   itemType: 0
   Weight: 4

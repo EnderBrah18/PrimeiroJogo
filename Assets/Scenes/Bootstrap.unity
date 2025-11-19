@@ -9477,9 +9477,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d39f64cc7b29be34db81e436201018e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManualLoad
-  sceneToLoad: Terrain
-  spawnID: Default
   loadOnStart: 1
+  sceneToLoad: Terrain
+  spawnPointID: Default
 --- !u!4 &1585227486
 Transform:
   m_ObjectHideFlags: 0
@@ -13364,6 +13364,7 @@ GameObject:
   - component: {fileID: 3156637083096452383}
   - component: {fileID: 7796899223437188630}
   - component: {fileID: 6178176276885555824}
+  - component: {fileID: 7796899223437188631}
   m_Layer: 0
   m_Name: Player*
   m_TagString: Player
@@ -15866,6 +15867,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UniqueID
   id: b43c9bc9-6f65-4014-89a0-c2ad7a66cd49
+--- !u!114 &7796899223437188631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 735551001062001656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78e9650d59b68241ad741f15e2266fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionHandler
 --- !u!1 &7835404670175991973
 GameObject:
   m_ObjectHideFlags: 0

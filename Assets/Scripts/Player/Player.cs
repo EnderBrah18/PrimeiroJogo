@@ -37,6 +37,9 @@ public class Player : MonoBehaviour
     [SerializeField] private float vSpeed = 0f;
     [SerializeField] private float gravity = -9.8f;
 
+    [HideInInspector]
+    public bool blockMovement = false;
+
     public float MoveSpeed => moveSpeed;
     public float JumpForce => jumpForce;
 
@@ -182,8 +185,18 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
+        if (blockMovement)
+        {
+            // Para animações
+            animator.SetBool("isWalking", false);
+            animator.SetBool("isIdle", true);
 
-        finalMovement = Vector3.zero;
+            // Não processa movimento
+            return;
+        }
+
+
+            finalMovement = Vector3.zero;
 
         #region CollectUpdate
 
@@ -538,6 +551,17 @@ public class Player : MonoBehaviour
 
 
     #endregion
+
+    public void SetMovementBlocked(bool blocked)
+    {
+        blockMovement = blocked;
+
+        if (blocked)
+        {
+            currentHorizontalVelocity = Vector3.zero;
+            vSpeed = 0f;
+        }
+    }
 }
 
 

@@ -76,7 +76,10 @@ public class CollectableResource : CollectableObject
             else
             {
                 Debug.Log("Inventário cheio ou peso excedido!");
-                // Aqui você pode decidir: descartar no chão, criar um drop físico, etc.
+
+                isBeingCollected = false; // <- permite tentar coletar novamente
+
+                yield break; //  BLOQUEIA A DESTRUIÇÃO DO OBJETO
             }
         }
         else
@@ -85,7 +88,10 @@ public class CollectableResource : CollectableObject
                 Debug.LogWarning("CollectDelay: playerInventory é nulo — item não foi adicionado.");
             if (resourceData == null)
                 Debug.LogWarning("CollectDelay: resourceData é nulo.");
-            // Se quiser criar um drop no chão quando não tiver inventário, faça aqui.
+
+            isBeingCollected = false; // <- permite tentar coletar novamente
+
+            yield break; //  BLOQUEIA A DESTRUIÇÃO DO OBJETO
         }
 
         Destroy(gameObject);

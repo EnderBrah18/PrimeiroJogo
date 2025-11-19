@@ -11,6 +11,7 @@ public class InventoryManager : MonoBehaviour
     public InputActionReference toggleInventoryAction;
 
     private bool isOpen = false;
+    private bool blocked = false;
 
     void Update()
     {
@@ -24,11 +25,13 @@ public class InventoryManager : MonoBehaviour
     public void ToggleInventory()
     {
         isOpen = !isOpen;
+        blocked = !blocked;
         inventoryPanel.SetActive(isOpen);
 
         if (cameraScript != null)
         {
-            cameraScript.HandleInventoryToggled(isOpen); // Libera ou bloqueia o mouse/câmera
+            cameraScript.HandleInventoryToggled(isOpen);
+            Player.Instance?.SetMovementBlocked(blocked);// Libera ou bloqueia o mouse/câmera
         }
     }
 

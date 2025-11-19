@@ -35,7 +35,6 @@ public class DungeonGenerator : MonoBehaviour
     private static bool mapaGerado = false;
     public CanvasGroup LoadingScreen;
     private GameObject player_;
-    private bool SceneReadyToActivate = false;
 
     // ============================================================
     // ====================== GERAÇÃO ==============================
