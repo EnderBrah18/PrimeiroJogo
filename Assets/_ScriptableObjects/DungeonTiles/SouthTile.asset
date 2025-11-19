@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd427fb54cdacf44da93efcfdd99722c, type: 3}
+  m_Name: SouthTile
+  m_EditorClassIdentifier: Assembly-CSharp::RoomPrefabData
+  baseOpenMask: 13
+  prefab: {fileID: 272262489268469820, guid: 8bffc065eae40e44fa518e5cb2a928b4, type: 3}
+  size: {x: 1, y: 1, z: 1}
