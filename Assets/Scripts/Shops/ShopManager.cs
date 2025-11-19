@@ -21,7 +21,6 @@ public class ShopManager : MonoBehaviour
     public InputActionReference interactAction;
     private InteractionHandler interactionHandler;
 
-    private bool isOpen = false;
     private GameObject currentOpenShop = null;
 
     void Awake()
@@ -53,7 +52,6 @@ public class ShopManager : MonoBehaviour
 
     private void CloseAll()
     {
-        isOpen = false;
         currentOpenShop = null;
 
         ShopUI.SetActive(false);
@@ -65,7 +63,6 @@ public class ShopManager : MonoBehaviour
         Player.Instance?.SetMovementBlocked(false);
         cameraScript?.HandleInventoryToggled(false);
 
-        isOpen = false;
         currentOpenShop = null;
     }
 
@@ -82,7 +79,6 @@ public class ShopManager : MonoBehaviour
         cameraScript?.HandleInventoryToggled(true);
 
         currentOpenShop = shop;
-        isOpen = true;
 
     }
 

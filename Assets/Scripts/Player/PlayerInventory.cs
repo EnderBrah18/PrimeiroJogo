@@ -22,7 +22,10 @@ public class PlayerInventory : MonoBehaviour, ISavable
     public int maxEquipmentSlots = 10;
     public int maxConsumableSlots = 10;
     public int maxQuestItemSlots = 5;
-    public float maxWeight = 100f;
+
+    // Referência ao ScriptableObject do player
+    public PlayerStatsSO playerStatsSO;
+    [HideInInspector] public PlayerStatsSO runtimeStats;
 
     // Lista de itens iniciais configuráveis no Inspector
     public List<StartingItem> startingItems;
@@ -44,7 +47,7 @@ public class PlayerInventory : MonoBehaviour, ISavable
             maxEquipmentSlots,
             maxConsumableSlots,
             maxQuestItemSlots,
-            maxWeight,
+            playerStatsSO.inventory.maxWeight,
             false // não é um baú
         );
 
@@ -53,9 +56,36 @@ public class PlayerInventory : MonoBehaviour, ISavable
             if (entry.item != null)
                 inventory.AddItem(entry.item, entry.amount);
         }
-
+        runtimeStats = ScriptableObject.CreateInstance<PlayerStatsSO>();
+        runtimeStats.LoadData(playerStatsSO.SaveData());
         inventoryUI?.Setup(inventory, player);
     }
+
+    public bool SpendCoins(int amount)
+    {
+        if (playerStatsSO == null) return false;
+
+        if (playerStatsSO.inventory.coins >= amount)
+        {
+            playerStatsSO.inventory.coins -= amount;
+            return true;
+        }
+
+        return false;
+    }
+
+    public int coins
+    {
+        get => playerStatsSO != null ? playerStatsSO.inventory.coins : 0;
+        set
+        {
+            if (playerStatsSO != null)
+                playerStatsSO.inventory.coins = value;
+        }
+    }
+
+    public float MaxWeight => playerStatsSO != null ? playerStatsSO.inventory.maxWeight : 100f;
+    public float Coins => playerStatsSO != null ? playerStatsSO.inventory.coins : 0f;
 
     private void OnEnable()
     {
@@ -100,6 +130,7 @@ public class PlayerInventory : MonoBehaviour, ISavable
         }
 
         inventoryUI?.Setup(inventory, GetComponent<Player>());
+        inventoryUI?.UpdateCoinsUI();
     }
 
     public string GetSaveKey() => SaveKey;

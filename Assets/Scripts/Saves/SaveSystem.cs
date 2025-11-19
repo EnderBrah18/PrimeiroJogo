@@ -7,6 +7,10 @@ public class SaveSystem : MonoBehaviour
     public static SaveSystem Instance { get; private set; }
 
     private Dictionary<string, ISavable> savables = new Dictionary<string, ISavable>();
+
+    private Dictionary<string, ISOSavable> soSavables =
+    new Dictionary<string, ISOSavable>();
+
     private string saveFilePath => Path.Combine(Application.persistentDataPath, "save.json");
 
     private void Awake()
@@ -43,6 +47,21 @@ public class SaveSystem : MonoBehaviour
             savables.Remove(key);
     }
 
+    // Registrar ISOSavable
+    public void RegisterSOSavable(ISOSavable so)
+    {
+        var key = so.GetSaveKey();
+        if (!soSavables.ContainsKey(key))
+            soSavables.Add(key, so);
+    }
+
+    public void UnregisterSOSavable(ISOSavable so)
+    {
+        var key = so.GetSaveKey();
+        if (soSavables.ContainsKey(key))
+            soSavables.Remove(key);
+    }
+
     // Salvar todos os ISavable
     public void SaveGame()
     {
@@ -50,6 +69,11 @@ public class SaveSystem : MonoBehaviour
         foreach (var savable in savables.Values)
         {
             saveData[savable.GetSaveKey()] = savable.SaveData();
+        }
+
+        foreach (var so in soSavables.Values)
+        {
+            saveData[so.GetSaveKey()] = so.SaveData();
         }
 
         string json = JsonUtility.ToJson(new SerializationWrapper(saveData), true);
@@ -75,6 +99,14 @@ public class SaveSystem : MonoBehaviour
             {
                 savable.LoadData(kvp.Value);
             }
+        }
+
+        foreach (var kvp in wrapper.ToDictionary())
+        {
+            if (savables.TryGetValue(kvp.Key, out ISavable savable))
+                savable.LoadData(kvp.Value);
+            else if (soSavables.TryGetValue(kvp.Key, out ISOSavable so))
+                so.LoadData(kvp.Value);
         }
 
         Debug.Log("Jogo carregado!");

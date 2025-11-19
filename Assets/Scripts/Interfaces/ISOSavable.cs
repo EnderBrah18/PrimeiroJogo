@@ -1,16 +1,8 @@
 using UnityEngine;
 
-public class ISOSavable : MonoBehaviour
+public interface ISOSavable
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    string GetSaveKey();       // Ex: "Vendor_LojaDoBob"
+    string SaveData();         // JSON string
+    void LoadData(string json);
 }

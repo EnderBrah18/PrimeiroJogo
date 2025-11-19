@@ -174,7 +174,6 @@ GameObject:
   - component: {fileID: 71879359}
   - component: {fileID: 71879358}
   - component: {fileID: 71879362}
-  - component: {fileID: 71879363}
   m_Layer: 0
   m_Name: Loja-Venda
   m_TagString: Untagged
@@ -291,6 +290,7 @@ MonoBehaviour:
   shopType: 0
   shopManager: {fileID: 1539499158}
   player: {fileID: 0}
+  playerStatsSO: {fileID: 11400000, guid: a07da9d894209a04b9d0c223d54836e4, type: 2}
   inventoryManager: {fileID: 0}
   shopItems:
   - item: {fileID: 11400000, guid: 49cf1e8cd1722db4482b58d62dfdb914, type: 2}
@@ -335,32 +335,6 @@ MonoBehaviour:
     currentBuys: 0
   showPrices: 1
   coinSymbol: $
---- !u!114 &71879363
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 71879357}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3080b346ff3f54b499a6e7ab72de94c5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CoinGiver
-  player: {fileID: 0}
-  inventoryManager: {fileID: 0}
-  playerStats: {fileID: 0}
-  inventory:
-    maxSlots: 0
-    maxWeight: 0
-    currentWeight: 0
-    coins: 0
-    slots: []
-    resourceSlots: []
-    equipmentSlots: []
-    consumableSlots: []
-    questItemSlots: []
-  inventoryUI: {fileID: 0}
 --- !u!1 &118601224
 GameObject:
   m_ObjectHideFlags: 0
@@ -1026,6 +1000,7 @@ MonoBehaviour:
   shopType: 2
   shopManager: {fileID: 1539499158}
   player: {fileID: 0}
+  playerStatsSO: {fileID: 11400000, guid: a07da9d894209a04b9d0c223d54836e4, type: 2}
   inventoryManager: {fileID: 0}
   shopItems: []
   showPrices: 1
@@ -5795,7 +5770,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 71879363}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: CoinGiver, Assembly-CSharp
         m_MethodName: GiveCoins
         m_Mode: 3

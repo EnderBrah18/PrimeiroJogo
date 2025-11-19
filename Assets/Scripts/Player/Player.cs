@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using TMPro;
+using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Windows;
@@ -28,30 +29,41 @@ public class Player : MonoBehaviour
     public Animator animator;
     [SerializeField] private Transform cameraTransform;
 
+    [SerializeField] private PlayerStatsSO stats;
 
     #region MovementVariables
     [Header("Movimenta��o")]
     [SerializeField] private float turnSpeed = 10f;
-    [SerializeField] private float jumpForce = 8f;
-    [SerializeField] private float moveSpeed = 10f;
+    private float moveSpeed => stats.movement.baseMoveSpeed;
+    private float jumpForce => stats.movement.baseJumpForce;
     [SerializeField] private float vSpeed = 0f;
-    [SerializeField] private float gravity = -9.8f;
+    [SerializeField] private float gravity => stats.gravity;
 
     [HideInInspector]
     public bool blockMovement = false;
 
-    public float MoveSpeed => moveSpeed;
-    public float JumpForce => jumpForce;
+    public PlayerStatsSO Stats => stats;
 
-    public void SetMoveSpeed(float value)
+    [HideInInspector] public PlayerStatsSO runtimeStats;
+
+    public float MoveSpeed
     {
-        moveSpeed = Mathf.Max(0, value);
+        get => stats.movement.baseMoveSpeed;
+        set => stats.movement.baseMoveSpeed = Mathf.Max(0, value);
     }
 
-    public void SetJumpForce(float value)
+    public float JumpForce
     {
-        jumpForce = Mathf.Max(0, value);
+        get => stats.movement.baseJumpForce;
+        set => stats.movement.baseJumpForce = Mathf.Max(0, value);
     }
+
+    public float MaxStamina
+    {
+        get => stats.stamina.maxStamina;
+        set => stats.stamina.maxStamina = Mathf.Max(0, value);
+    }
+
 
     private float groundedGraceTime = 0.2f;
     private float lastGroundedTime;
@@ -76,15 +88,18 @@ public class Player : MonoBehaviour
     public LayerMask climbableMask;
 
     [Header("Estamina")]
-    public float maxStamina = 100f;
     public float currentStamina;
-    public float staminaRegenRate = 15f;
-    public float staminaSprintCost = 20f; // por segundo
-    public float staminaClimbCost = 10f;  // por segundo
-    public float staminaJumpCost = 15f;
-    public float staminaMinToSprint = 5f;
-    public float staminaMinToClimb = 5f;
-    public float sprintMultiplier = 1.75f;
+    private float staminaRegenRate => stats.stamina.staminaRegenRate;
+    private float staminaSprintCost => stats.stamina.staminaSprintCost;
+    private float staminaClimbCost => stats.stamina.staminaClimbCost;
+    private float staminaJumpCost => stats.stamina.staminaJumpCost;
+    private float staminaMinToSprint => stats.stamina.staminaMinToSprint;
+    private float staminaMinToClimb => stats.stamina.staminaMinToClimb;
+
+    private float sprintMultiplier => stats.stamina.sprintMultiplier;
+
+    public float maxStamina => stats.stamina.maxStamina;
+
     public bool isSprinting = false;
 
     #endregion
@@ -125,6 +140,11 @@ public class Player : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        runtimeStats = ScriptableObject.CreateInstance<PlayerStatsSO>();
+        runtimeStats.LoadData(stats.SaveData());
+
+        if (stats != null)
+            SaveSystem.Instance.RegisterSOSavable(stats);
     }
 
     private void Start()
@@ -514,7 +534,7 @@ public class Player : MonoBehaviour
         {
             if (item != null)
             {
-                maxStamina += item.bonusStamina;
+                stats.stamina.maxStamina += item.bonusStamina;
                 //Adicionar outros atributos conforme necessário
             }
         }
@@ -541,8 +561,8 @@ public class Player : MonoBehaviour
             {
                 switch (modifier.statName)
                 {
-                    case "Speed": moveSpeed += modifier.value; break;
-                    case "Stamina": maxStamina += modifier.value; break;
+                    case "Speed": stats.movement.baseMoveSpeed += modifier.value; break;
+                    case "Stamina": stats.stamina.maxStamina += modifier.value; break;
                     default: Debug.LogWarning($"Stat desconhecido: {modifier.statName}"); break;
                 }
             }

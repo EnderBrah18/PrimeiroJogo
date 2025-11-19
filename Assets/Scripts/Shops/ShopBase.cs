@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class ShopBase : MonoBehaviour
 {
@@ -29,7 +30,8 @@ public class ShopBase : MonoBehaviour
     }
 
     [Header("Referências do Jogador")]
-    [SerializeField] private GameObject player;
+    [SerializeField] protected GameObject player;
+    [SerializeField] protected PlayerStatsSO playerStatsSO;
     [SerializeField] private GameObject inventoryManager;
 
     [Header("Itens da Loja")]
@@ -41,6 +43,7 @@ public class ShopBase : MonoBehaviour
 
     // Referências internas
     protected Player playerStats;
+    protected PlayerInventory playerInventoryRef;
     protected Inventory inventory;
     protected InventoryUI inventoryUI;
 
@@ -49,33 +52,38 @@ public class ShopBase : MonoBehaviour
         if (player == null)
         {
             Player foundPlayer = FindFirstObjectByType<Player>();
-
             if (foundPlayer != null)
                 player = foundPlayer.gameObject;
             else
                 Debug.LogError("ShopBase não encontrou nenhum Player na cena!");
         }
 
-        // 3. InventoryManager automático
+        if (player != null)
+        {
+            playerStats = player.GetComponent<Player>();
+            playerStatsSO = playerStats.Stats; // <-- acessar o SO via getter
+        }
+
+        // InventoryManager automático
         if (inventoryManager == null)
         {
             InventoryUI foundInv = FindFirstObjectByType<InventoryUI>();
-
             if (foundInv != null)
                 inventoryManager = foundInv.gameObject;
             else
                 Debug.LogError("ShopBase não encontrou InventoryManager (InventoryUI) na cena!");
         }
 
-        playerStats = player.GetComponent<Player>();
-        inventory = player.GetComponent<PlayerInventory>().inventory;
+        playerInventoryRef = player.GetComponent<PlayerInventory>();
+        if (playerInventoryRef == null)
+        {
+            Debug.LogError("PlayerInventory não encontrado no Player!");
+            return;
+        }
+
+
+        inventory = playerStats.playerInventory.inventory;
         inventoryUI = inventoryManager.GetComponent<InventoryUI>();
-
-        if (inventory == null)
-            Debug.LogError("Player não tem componente Inventory!");
-
-        if (inventoryUI == null)
-            Debug.LogError("InventoryManager não tem componente InventoryUI!");
     }
 
     private void Start()
@@ -157,7 +165,7 @@ public class ShopBase : MonoBehaviour
 
         int totalCost = refItem.item.cost * refItem.amount;
 
-        if (!inventory.SpendCoins(totalCost))
+        if (!playerInventoryRef.SpendCoins(totalCost))
         {
             ShowFeedback(refItem, "Moedas insuficientes!");
             Debug.Log("Moedas insuficientes!");
@@ -176,7 +184,7 @@ public class ShopBase : MonoBehaviour
         }
 
         // Se não conseguiu adicionar, reembolsa
-        inventory.coins += totalCost;
+        playerInventoryRef.coins += totalCost;
         inventoryUI.UpdateCoinsUI();
         ShowFeedback(refItem, "Inventário cheio!");
         Debug.Log("Inventário cheio ou erro na compra.");
@@ -195,7 +203,7 @@ public class ShopBase : MonoBehaviour
         }
 
         int totalValue = refItem.item.cost * refItem.amount;
-        inventory.coins += totalValue;
+        playerInventoryRef.coins += totalValue;
         inventoryUI.UpdateCoinsUI();
 
         ShowFeedback(refItem, $"Vendeu {refItem.amount}x {refItem.item.itemName}");

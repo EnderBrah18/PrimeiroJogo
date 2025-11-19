@@ -6,7 +6,7 @@ public class CoinGiver : MonoBehaviour
     [SerializeField] private GameObject inventoryManager;
 
     public Player playerStats;
-    public Inventory inventory;
+    public PlayerInventory inventory;
     public InventoryUI inventoryUI;
 
     private void Start()
@@ -24,7 +24,7 @@ public class CoinGiver : MonoBehaviour
         }
 
         playerStats = player.GetComponent<Player>();
-        inventory = player.GetComponent<PlayerInventory>().inventory;
+        inventory = player.GetComponent<PlayerInventory>();
         inventoryUI = inventoryManager.GetComponent<InventoryUI>();
 
         if (inventory == null)

@@ -86,7 +86,7 @@ public class UpgradeShop : ShopBase
         }
 
         // 💰 Verifica se há moedas suficientes
-        if (!inventory.SpendCoins(upg.cost))
+        if (!playerInventoryRef.SpendCoins(upg.cost))
         {
             ShowUpgradeFeedback(upg, "Sem moedas suficientes!");
             Debug.Log($"[UpgradeShop] Moedas insuficientes para {upg.upgradeName}.");
@@ -110,23 +110,22 @@ public class UpgradeShop : ShopBase
         switch (upg.upgradeType)
         {
             case UpgradeType.MoveSpeed:
-                playerStats.SetMoveSpeed(playerStats.MoveSpeed + upg.value);
+                playerStatsSO.movement.baseMoveSpeed += upg.value;
                 break;
             case UpgradeType.JumpForce:
-                playerStats.SetJumpForce(playerStats.JumpForce + upg.value);
+                playerStatsSO.movement.baseJumpForce += upg.value; // ou crie SetJumpForce se quiser
                 break;
             case UpgradeType.DashDistance:
-                playerStats.dashDistance += upg.value;
+                playerStatsSO.dash.dashDistance += upg.value;
                 break;
             case UpgradeType.DashCooldown:
-                playerStats.dashCooldown = Mathf.Max(0.1f, playerStats.dashCooldown - upg.value);
+                playerStatsSO.dash.dashCooldown = Mathf.Max(0.1f, playerStatsSO.dash.dashCooldown - upg.value);
                 break;
             case UpgradeType.MaxStamina:
-                playerStats.maxStamina += upg.value;
-                playerStats.currentStamina = playerStats.maxStamina;
+                playerStatsSO.stamina.maxStamina += upg.value;
                 break;
             case UpgradeType.StaminaRegenRate:
-                playerStats.staminaRegenRate += upg.value;
+                playerStatsSO.stamina.staminaRegenRate += upg.value;
                 break;
         }
 

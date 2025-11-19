@@ -8,7 +8,6 @@ public class Inventory
     public int maxSlots;
     public float maxWeight;
     public float currentWeight;
-    public int coins;
 
     public List<InventorySlot> slots;
     public List<InventorySlot> resourceSlots;
@@ -20,6 +19,7 @@ public class Inventory
     public event Action<ItemType> OnInventoryChanged;
 
     private Player player;
+
 
 
     public Inventory(Player playerRef, int resourceSlotsAmount = 20, int equipmentSlotsAmount = 10, int consumableSlotsAmount = 10, int questSlotsAmount = 5, float weight = 100f, bool isChest = false)
@@ -140,16 +140,6 @@ public class Inventory
             return true;
         }
 
-        return false;
-    }
-
-    public bool SpendCoins(int amount)
-    {
-        if (coins >= amount)
-        {
-            coins -= amount;
-            return true;
-        }
         return false;
     }
 
