@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsSO
   movement:
     baseMoveSpeed: 10
-    baseJumpForce: 8
+    baseJumpForce: 6
     turnSpeed: 10
   stamina:
     maxStamina: 100

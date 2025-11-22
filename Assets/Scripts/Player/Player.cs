@@ -259,6 +259,7 @@ public class Player : MonoBehaviour
         // animações...
         animator.SetBool("isIdle", currentState == CharacterState.IDLE);
         animator.SetBool("isWalking", currentState == CharacterState.WALKING);
+        animator.SetBool("isSprinting", currentState == CharacterState.SPRINTING);
         animator.SetBool("isJumping", currentState == CharacterState.JUMPING);
         animator.SetBool("isFalling", currentState == CharacterState.FALLING);
 
