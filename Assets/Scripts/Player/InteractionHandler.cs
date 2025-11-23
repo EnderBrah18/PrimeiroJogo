@@ -2,17 +2,15 @@ using UnityEngine;
 
 public class InteractionHandler : MonoBehaviour
 {
-    private ShopBase currentVendor;
+    private InteractableBase currentInteractable;
 
     void OnEnable()
     {
-        // Registrar callback para quando o ShopManager aparecer
         ShopManager.OnShopManagerReady += RegisterWhenReady;
     }
 
     void OnDisable()
     {
-        // Remover callback
         ShopManager.OnShopManagerReady -= RegisterWhenReady;
     }
 
@@ -28,10 +26,6 @@ public class InteractionHandler : MonoBehaviour
             ShopManager.Instance.RegisterInteractionHandler(this);
             Debug.Log("InteractionHandler registrado no ShopManager.");
         }
-        else
-        {
-            Debug.LogWarning("ShopManager.Instance é NULL no Start(): aguardando ShopManager aparecer...");
-        }
     }
 
     private void RegisterWhenReady()
@@ -41,36 +35,37 @@ public class InteractionHandler : MonoBehaviour
 
     public void Interact()
     {
-        if (currentVendor != null)
+        if (currentInteractable != null)
         {
-            Debug.Log("Interagindo com vendedor: " + currentVendor.name);
-            currentVendor.OpenShop();
+            Debug.Log("Interagindo com: " + currentInteractable.name);
+            currentInteractable.Interact();
         }
         else
         {
-            Debug.Log("Interação ignorada: nenhum vendedor na área.");
+            Debug.Log("Interação ignorada: nenhum objeto interagível próximo.");
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        var vendor = other.GetComponent<ShopBase>();
+        // pega qualquer objeto que herde de InteractableBase
+        var interactable = other.GetComponent<InteractableBase>();
 
-        if (vendor != null)
+        if (interactable != null)
         {
-            currentVendor = vendor;
-            Debug.Log($"Player ENTROU na área de interação do vendedor: {vendor.name}");
+            currentInteractable = interactable;
+            Debug.Log($"Player ENTROU em área de interação: {interactable.name}");
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        var vendor = other.GetComponent<ShopBase>();
+        var interactable = other.GetComponent<InteractableBase>();
 
-        if (vendor != null && vendor == currentVendor)
+        if (interactable != null && interactable == currentInteractable)
         {
-            Debug.Log($"Player SAIU da área do vendedor: {currentVendor.name}");
-            currentVendor = null;
+            Debug.Log($"Player SAIU da área de interação: {currentInteractable.name}");
+            currentInteractable = null;
         }
     }
 }

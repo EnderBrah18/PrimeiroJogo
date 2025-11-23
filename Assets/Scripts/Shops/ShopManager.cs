@@ -59,7 +59,7 @@ public class ShopManager : MonoBehaviour
         SellShopUI.SetActive(false);
         EquipmentShopUI.SetActive(false);
         UpgradeShopUI.SetActive(false);
-        UIManager.IsShopOpen = false;
+        ShopUIManager.IsShopOpen = false;
 
         Player.Instance?.SetMovementBlocked(false);
         cameraScript?.HandleInventoryToggled(false);
@@ -75,7 +75,7 @@ public class ShopManager : MonoBehaviour
         // Abre apenas a loja solicitada
         ShopUI.SetActive(true);
         shop.SetActive(true);
-        UIManager.IsShopOpen = true;
+        ShopUIManager.IsShopOpen = true;
 
         Player.Instance?.SetMovementBlocked(true);
         cameraScript?.HandleInventoryToggled(true);
@@ -130,7 +130,7 @@ public class ShopManager : MonoBehaviour
     }
 
     //temporário
-    public static class UIManager
+    public static class ShopUIManager
     {
         public static bool IsShopOpen = false;
     }

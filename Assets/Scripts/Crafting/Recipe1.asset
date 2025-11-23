@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a37e7953c35fbef4a99819e0c0008eee, type: 3}
+  m_Name: Recipe1
+  m_EditorClassIdentifier: Assembly-CSharp::RecipeSO
+  recipeName: Machado de Pedra
+  ingredients:
+  - item: {fileID: 11400000, guid: 49cf1e8cd1722db4482b58d62dfdb914, type: 2}
+    amount: 3
+  - item: {fileID: 11400000, guid: 6cda92a0877e25244987e517be14bf12, type: 2}
+    amount: 2
+  resultItem: {fileID: 11400000, guid: 62debe1af5a03bf478cd3ad9b40b02ab, type: 2}
+  resultAmount: 1
