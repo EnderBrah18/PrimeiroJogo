@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
@@ -7,7 +7,7 @@ public class SceneLoader : MonoBehaviour
 {
     public static SceneLoader Instance;
 
-    [Header("Configurações")]
+    [Header("ConfiguraÃ§Ãµes")]
     public string mainMenuSceneName = "MenuPrincipal";
     public string loadingScreenName = "LoadingScreen";
 
@@ -86,8 +86,8 @@ public class SceneLoader : MonoBehaviour
             yield return null;
         }
 
-        // Se for modo manual, a LoadingScreen fica até você chamar HideLoadingScreen()
-        // Caso automático (ex: cena principal), desativa a LoadingScreen imediatamente
+        // Se for modo manual, a LoadingScreen fica atÃ© vocÃª chamar HideLoadingScreen()
+        // Caso automÃ¡tico (ex: cena principal), desativa a LoadingScreen imediatamente
         if (!manualMode && loadingScreen != null)
             loadingScreen.SetActive(false);
     }
@@ -100,9 +100,52 @@ public class SceneLoader : MonoBehaviour
             loadingScreen.SetActive(false);
     }
 
-    // Método antigo ainda disponível
+    // MÃ©todo antigo ainda disponÃ­vel
     public void HideLoadingScreen()
     {
+        if (loadingScreen != null)
+            loadingScreen.SetActive(false);
+    }
+
+    public void LoadSceneAndRestoreSave(string sceneName)
+    {
+        StartCoroutine(LoadSceneAndRestoreCoroutine(sceneName));
+    }
+
+    private IEnumerator LoadSceneAndRestoreCoroutine(string sceneName)
+    {
+        manualMode = false;
+        sceneReadyToActivate = true;
+
+        if (loadingScreen == null)
+            TryFindLoadingScreen();
+
+        if (loadingScreen != null)
+            loadingScreen.SetActive(true);
+
+        // Carrega cena
+        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName);
+        op.allowSceneActivation = true;
+
+        // Atualiza barra de progresso
+        while (!op.isDone)
+        {
+            if (progressBar != null)
+                progressBar.value = Mathf.Clamp01(op.progress / 0.9f);
+
+            yield return null;
+        }
+
+        // Espera 1 frame para toda a cena inicializar
+        yield return null;
+
+        // Restaura o save
+        SaveSystem.Instance.LoadGameAfterSceneLoaded();
+
+        // Espera mais 5 segundos antes de desligar o loading
+        yield return new WaitForSeconds(5f);
+
+        // Desliga loading
         if (loadingScreen != null)
             loadingScreen.SetActive(false);
     }

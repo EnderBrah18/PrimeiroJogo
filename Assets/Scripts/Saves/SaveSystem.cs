@@ -111,4 +111,32 @@ public class SaveSystem : MonoBehaviour
 
         Debug.Log("Jogo carregado!");
     }
+
+    public void LoadGameAfterSceneLoaded()
+    {
+        string json = File.ReadAllText(saveFilePath); // seu método que pega o json salvo
+
+        if (string.IsNullOrEmpty(json))
+        {
+            Debug.LogWarning("Nenhum save encontrado.");
+            return;
+        }
+
+        var wrapper = JsonUtility.FromJson<SerializationWrapper>(json);
+
+        var dict = wrapper.ToDictionary();
+
+        Debug.Log("Restaurando save (" + dict.Count + " itens)");
+
+        // Restaurar todos ISavables existentes na cena
+        foreach (var kvp in dict)
+        {
+            if (savables.TryGetValue(kvp.Key, out ISavable savable))
+                savable.LoadData(kvp.Value);
+            else if (soSavables.TryGetValue(kvp.Key, out ISOSavable so))
+                so.LoadData(kvp.Value);
+        }
+
+        Debug.Log("Save restaurado com sucesso!");
+    }
 }

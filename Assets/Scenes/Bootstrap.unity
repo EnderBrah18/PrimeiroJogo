@@ -1950,6 +1950,7 @@ GameObject:
   - component: {fileID: 335690308}
   - component: {fileID: 335690307}
   - component: {fileID: 335690309}
+  - component: {fileID: 335690310}
   m_Layer: 0
   m_Name: SaveManager
   m_TagString: Untagged
@@ -1997,6 +1998,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cf30c51fbf0fdc4ea94e06729ec8e39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExitGame
+--- !u!114 &335690310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 335690305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99b4bf63185e4fa499d8e7f24eb6b518, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneSaver
 --- !u!1 &361464497
 GameObject:
   m_ObjectHideFlags: 0
@@ -7409,7 +7422,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1196606099
 RectTransform:
   m_ObjectHideFlags: 0

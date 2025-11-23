@@ -80,6 +80,23 @@ public class PlayerInventory : MonoBehaviour, ISavable
         }
     }
 
+    private void ClearAllSlots()
+    {
+        ClearSlotList(inventory.resourceSlots);
+        ClearSlotList(inventory.equipmentSlots);
+        ClearSlotList(inventory.consumableSlots);
+        ClearSlotList(inventory.questItemSlots);
+    }
+
+    private void ClearSlotList(List<InventorySlot> list)
+    {
+        foreach (var slot in list)
+        {
+            slot.item = null;
+            slot.quantity = 0;
+        }
+    }
+
     public float MaxWeight => playerStatsSO != null ? playerStatsSO.inventory.maxWeight : 100f;
     public float Coins => playerStatsSO != null ? playerStatsSO.inventory.coins : 0f;
 
@@ -115,16 +132,28 @@ public class PlayerInventory : MonoBehaviour, ISavable
 
         InventorySaveData data = JsonUtility.FromJson<InventorySaveData>(json);
 
+        // 1 - Limpa todos os slots do inventário atual
+        ClearAllSlots();
 
+        // 2 - Limpa os StartingItems (para não reaplicar iniciando)
+        //    Somente se você quiser evitar itens duplicados
+        startingItems.Clear();
+
+        // 3 - Reconstrói o inventário a partir do save
         for (int i = 0; i < data.itemIDs.Count; i++)
         {
             ItemSO item = ItemLoader.GetItemByID(data.itemIDs[i]);
             if (item != null)
+            {
                 inventory.AddItem(item, data.amounts[i]);
+            }
             else
+            {
                 Debug.LogWarning("Item do save não encontrado: " + data.itemIDs[i]);
+            }
         }
 
+        // 4 - Atualiza a UI
         inventoryUI?.Setup(inventory, GetComponent<Player>());
         inventoryUI?.UpdateCoinsUI();
     }
