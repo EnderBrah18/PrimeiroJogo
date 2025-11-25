@@ -10,28 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17756f92cf37c55468575aad8d5af175, type: 3}
-  m_Name: Hoe
-  m_EditorClassIdentifier: 
-  id: Hoe_1
-  itemName: Enxada Da Vida
-  icon: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
-  amount: 0
+  m_Name: Pickaxe_Stone
+  m_EditorClassIdentifier: Assembly-CSharp::Tools
+  id: Pickaxe_Stone
+  itemName: Picareta de Pedra
+  icon: {fileID: 0}
+  amount: 1
   cost: 0
-  description: "Uma enxada que tr\xE1z a morte."
+  description: 
   itemType: 1
   Weight: 5
-  equipmentName: Enxada da Morte
-  rarity: 5
+  equipmentName: Picareta de Pedra
+  rarity: 0
   equipmentType: 7
   bonusAttack: 0
   bonusDefense: 0
   bonusSpeed: 0
-  bonusStamina: 700
-  level: 3
-  weight: 1
+  bonusStamina: 0
+  level: 1
+  weight: 5
   statModifiers: []
-  toolType: 3
+  toolType: 2
   prefab: {fileID: 0}
   statusModifiers:
   - statName: CollectSpeed
-    value: 5
+    value: 1.5
+  - statName: ExtraYieldChance
+    value: 25
+  - statName: ExtraYieldAmount
+    value: 2

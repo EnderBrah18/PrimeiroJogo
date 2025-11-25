@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5902477572586124488}
-  - component: {fileID: 4109002317674193544}
   - component: {fileID: 8776450432669830702}
-  m_Layer: 0
+  - component: {fileID: 4109002317674193544}
+  m_Layer: 7
   m_Name: PFB_Pedregulho_4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -34,6 +34,19 @@ Transform:
   - {fileID: 4261937260404202791}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8776450432669830702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1416742997722809635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2621702748823c3468ed4abe1133e325, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CollectableResource
+  resourceData: {fileID: 11400000, guid: 1db7a1a5d79f40446993b9e8f716030d, type: 2}
 --- !u!65 &4109002317674193544
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -55,19 +68,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8776450432669830702
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1416742997722809635}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2621702748823c3468ed4abe1133e325, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CollectableResource
-  resourceData: {fileID: 0}
 --- !u!1001 &4261937260404120191
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -79,6 +79,10 @@ PrefabInstance:
     - target: {fileID: 174596, guid: 41dcf1459594f434a8a9bae6ae03eab0, type: 3}
       propertyPath: m_Name
       value: Rock Type2 02
+      objectReference: {fileID: 0}
+    - target: {fileID: 174596, guid: 41dcf1459594f434a8a9bae6ae03eab0, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 477016, guid: 41dcf1459594f434a8a9bae6ae03eab0, type: 3}
       propertyPath: m_LocalPosition.x

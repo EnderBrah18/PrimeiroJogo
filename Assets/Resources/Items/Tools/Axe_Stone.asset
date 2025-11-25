@@ -10,27 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 17756f92cf37c55468575aad8d5af175, type: 3}
-  m_Name: Hoe 1
-  m_EditorClassIdentifier: 
-  id: Hoe_2
-  itemName: 
+  m_Name: Axe_Stone
+  m_EditorClassIdentifier: Assembly-CSharp::Tools
+  id: Axe_Stone
+  itemName: Machado de Pedra
   icon: {fileID: 0}
-  amount: 0
-  description: "Uma enxada que tr\xE1z a vida."
+  amount: 1
+  cost: 0
+  description: 
   itemType: 1
   Weight: 5
-  equipmentName: Enxada da Vida
-  rarity: 5
-  equipmentType: 7
+  equipmentName: Machado de Pedra
+  rarity: 0
+  equipmentType: 6
   bonusAttack: 0
   bonusDefense: 0
   bonusSpeed: 0
   bonusStamina: 0
-  level: 3
-  weight: 1
+  level: 1
+  weight: 5
   statModifiers: []
-  toolType: 3
+  toolType: 1
   prefab: {fileID: 0}
   statusModifiers:
   - statName: CollectSpeed
-    value: 5
+    value: 0
+  - statName: ExtraYieldChance
+    value: 0
+  - statName: ExtraYieldAmount
+    value: 0

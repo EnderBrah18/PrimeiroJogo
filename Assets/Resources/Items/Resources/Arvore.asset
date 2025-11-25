@@ -15,12 +15,13 @@ MonoBehaviour:
   id: Tree
   itemName: Madeira
   icon: {fileID: 0}
-  amount: 0
+  amount: 4
+  cost: 5
   description: 
   itemType: 0
-  Weight: 5
+  Weight: 7
   resourceName: Madeira
   requiredToolType: 1
   requiredToolLevel: 1
-  baseCollectTime: 5
+  baseCollectTime: 10
   type: 2

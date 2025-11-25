@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2252954372843889583}
   - component: {fileID: 8935689310608005487}
   - component: {fileID: 1270158188176970532}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: PFB_Lenha_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2621702748823c3468ed4abe1133e325, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CollectableResource
-  resourceData: {fileID: 0}
+  resourceData: {fileID: 11400000, guid: e5d70336c84a0494397fc8e4477a0fd7, type: 2}
 --- !u!65 &1270158188176970532
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -119,6 +119,10 @@ PrefabInstance:
     - target: {fileID: 3010216212467657930, guid: 244ce2af788c0c346b86cbc0473811b0, type: 3}
       propertyPath: m_Name
       value: PT_Pine_Tree_03_logs
+      objectReference: {fileID: 0}
+    - target: {fileID: 3010216212467657930, guid: 244ce2af788c0c346b86cbc0473811b0, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

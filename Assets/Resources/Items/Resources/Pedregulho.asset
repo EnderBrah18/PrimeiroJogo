@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 82c0c35d2788eb446b39564428f5e6c5, type: 3}
-  m_Name: Pedra
+  m_Name: Pedregulho
   m_EditorClassIdentifier: Assembly-CSharp::ResourceSO
-  id: Small_Rocks
-  itemName: Pedrinhas
-  icon: {fileID: 21300074, guid: bb76618f4bae74c83b9d6654d0b2a47e, type: 3}
-  amount: 4
-  cost: 1
+  id: Medium_Rocks
+  itemName: Pedregulho
+  icon: {fileID: 21300076, guid: bb76618f4bae74c83b9d6654d0b2a47e, type: 3}
+  amount: 2
+  cost: 2
   description: 
   itemType: 0
-  Weight: 3
-  resourceName: Pedrinhas
-  requiredToolType: 0
-  requiredToolLevel: 0
-  baseCollectTime: 0
+  Weight: 5
+  resourceName: Pedregulho
+  requiredToolType: 2
+  requiredToolLevel: 1
+  baseCollectTime: 5
   type: 1

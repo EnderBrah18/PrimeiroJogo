@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3066260261369025145}
   - component: {fileID: 654699382496394778}
   - component: {fileID: 7407725794617794086}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: PFB_Lenha_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2621702748823c3468ed4abe1133e325, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CollectableResource
-  resourceData: {fileID: 0}
+  resourceData: {fileID: 11400000, guid: e5d70336c84a0494397fc8e4477a0fd7, type: 2}
 --- !u!65 &7407725794617794086
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -79,6 +79,10 @@ PrefabInstance:
     - target: {fileID: 4026988788687868377, guid: c0c32672766a81647b04690fc9ed3595, type: 3}
       propertyPath: m_Name
       value: PT_Fruit_Tree_01_logs
+      objectReference: {fileID: 0}
+    - target: {fileID: 4026988788687868377, guid: c0c32672766a81647b04690fc9ed3595, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 4371144052285426531, guid: c0c32672766a81647b04690fc9ed3595, type: 3}
       propertyPath: m_LocalPosition.x

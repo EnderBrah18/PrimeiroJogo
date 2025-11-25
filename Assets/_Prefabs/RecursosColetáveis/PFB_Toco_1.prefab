@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5856968273456426979}
   - component: {fileID: 1313871071973914609}
   - component: {fileID: 5619992166264742450}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: PFB_Toco_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -67,7 +67,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2621702748823c3468ed4abe1133e325, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CollectableResource
-  resourceData: {fileID: 0}
+  resourceData: {fileID: 11400000, guid: e5d70336c84a0494397fc8e4477a0fd7, type: 2}
 --- !u!1001 &6493123667256116614
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -119,6 +119,10 @@ PrefabInstance:
     - target: {fileID: 3125019525012259300, guid: c8b350551fbedc84c8025d7d29f3a018, type: 3}
       propertyPath: m_Name
       value: PT_Pine_Tree_03_stump
+      objectReference: {fileID: 0}
+    - target: {fileID: 3125019525012259300, guid: c8b350551fbedc84c8025d7d29f3a018, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
