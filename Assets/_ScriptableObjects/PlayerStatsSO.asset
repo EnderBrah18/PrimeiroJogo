@@ -38,6 +38,16 @@ MonoBehaviour:
     climbSpeed: 2
     climbCheckDistance: 1
     lateralClimbSpeed: 1
+  combat:
+    attackCooldown: 0.5
+    attackDamage: 10
+    attackRange: 3
+    attackKnockback: 5
+    attackStaminaCost: 2
+    maxHealth: 100
+    HealthRegenRate: 1
+    HealthRegenDelay: 5
+    defense: 0
   inventory:
     maxWeight: 100
     coins: 0

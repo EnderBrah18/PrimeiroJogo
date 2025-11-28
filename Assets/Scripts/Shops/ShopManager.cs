@@ -1,6 +1,7 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System;
+using static Unity.Collections.AllocatorManager;
 
 public class ShopManager : MonoBehaviour
 {
@@ -17,11 +18,9 @@ public class ShopManager : MonoBehaviour
     public GameObject EquipmentShopUI;
     public GameObject UpgradeShopUI;
 
-    [Header("Input")]
-    public InputActionReference interactAction;
-    private InteractionHandler interactionHandler;
-
     private GameObject currentOpenShop = null;
+
+    private bool blocked = false;
 
     void Awake()
     {
@@ -35,19 +34,6 @@ public class ShopManager : MonoBehaviour
     void Start()
     {
         CloseAll();
-    }
-
-    void Update()
-    {
-        if (interactAction.action.WasPressedThisFrame())
-        {
-            interactionHandler?.Interact();
-        }
-    }
-
-    public void RegisterInteractionHandler(InteractionHandler handler)
-    {
-        interactionHandler = handler;
     }
 
     public void CloseAll()
@@ -76,8 +62,10 @@ public class ShopManager : MonoBehaviour
         ShopUI.SetActive(true);
         shop.SetActive(true);
         ShopUIManager.IsShopOpen = true;
+        blocked = !blocked;
 
-        Player.Instance?.SetMovementBlocked(true);
+        Player.Instance?.SetMovementBlocked(blocked);
+        Player.Instance?.SetAttackBlocked(blocked);
         cameraScript?.HandleInventoryToggled(true);
 
         currentOpenShop = shop;

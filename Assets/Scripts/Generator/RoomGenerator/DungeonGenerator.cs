@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Collections;
+using Unity.AI.Navigation;
+
 
 
 #if UNITY_EDITOR
@@ -36,13 +38,15 @@ public class DungeonGenerator : MonoBehaviour
     public CanvasGroup LoadingScreen;
     private GameObject player_;
 
+    public NavMeshSurface surface;
+
     // ============================================================
     // ====================== GERAÇÃO ==============================
     // ============================================================
     private void Awake()
     {
         player_ = GameObject.FindGameObjectWithTag("Player");
-        player_.transform.position = new Vector3(0, 15, 0);
+        player_.transform.position = new Vector3(-25, 1, 1);
         Player.Instance?.SetMovementBlocked(true);
     }
 
@@ -187,6 +191,22 @@ public class DungeonGenerator : MonoBehaviour
 
         Debug.Log($"✅ Dungeon gerada com {roomCount} salas conectadas (tiles e objetos).");
         mapaGerado = true;
+        yield return null;   // garante que Terrains e Colliders foram atualizados
+
+        surface.BuildNavMesh();
+        foreach (var kvp in placedRooms)
+        {
+            Room room = kvp.Value;
+            if (room == null) continue;
+
+            Enemy[] enemies = room.GetComponentsInChildren<Enemy>();
+            foreach (var enemy in enemies)
+            {
+                if (enemy != null)
+                    enemy.InitializeAfterNavmesh();
+            }
+        }
+        yield return null;   // garantiza que o NavMesh terminou de processar
 
         MapWasGenerated();
     }

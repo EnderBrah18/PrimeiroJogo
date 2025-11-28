@@ -1,6 +1,7 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System;
+using static Unity.Collections.AllocatorManager;
 
 public class CraftingStationManager : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class CraftingStationManager : MonoBehaviour
     public InputActionReference interactAction;
     private InteractionHandler interactionHandler;
 
+    private bool blocked = false;
     void Awake()
     {
         Instance = this;
@@ -62,18 +64,17 @@ public class CraftingStationManager : MonoBehaviour
 
         CraftingUI.SetActive(true);
         CraftingUIManager.IsCraftingOpen = true;
+        blocked = !blocked;
 
-        Player.Instance?.SetMovementBlocked(true);
-        cameraScript?.HandleInventoryToggled(true);
+        Player.Instance?.SetMovementBlocked(blocked);
+        Player.Instance?.SetAttackBlocked(blocked);
+        cameraScript?.HandleInventoryToggled(blocked);
     }
 
     public void CloseStationUI()
     {
         CraftingUI.SetActive(false);
         CraftingUIManager.IsCraftingOpen = false;
-
-        Player.Instance?.SetMovementBlocked(false);
-        cameraScript?.HandleInventoryToggled(false);
 
         currentStation = null;
     }

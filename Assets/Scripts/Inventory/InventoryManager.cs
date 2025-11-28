@@ -38,6 +38,7 @@ public class InventoryManager : MonoBehaviour
         {
             cameraScript.HandleInventoryToggled(isOpen);
             Player.Instance?.SetMovementBlocked(blocked);// Libera ou bloqueia o mouse/câmera
+            Player.Instance?.SetAttackBlocked(blocked);
         }
     }
 

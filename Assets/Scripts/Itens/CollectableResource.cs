@@ -1,15 +1,25 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
+using UnityEngine.UI;
 
 public class CollectableResource : CollectableObject
 {
     public ResourceSO resourceData;
 
+    [Header("UI de Coleta")]
+    public Canvas worldCanvas;
+    public Image progressImage;
+
     private bool isBeingCollected = false;
+    private bool blocked = false;
 
     private Inventory playerInventory;
     private InventoryUI inventoryUI;
+
+    private Tween progressTween;
+
+
 
 
     private void Start()
@@ -58,7 +68,31 @@ public class CollectableResource : CollectableObject
         finalTime -= statModifier;
         finalTime = Mathf.Max(0.3f, finalTime);
 
+        blocked = !blocked;
+
+        Player.Instance?.SetMovementBlocked(blocked);
+        Player.Instance?.SetAttackBlocked(blocked);
+
+        // Ativa a UI de coleta
+        if (worldCanvas != null)
+            worldCanvas.enabled = true;
+
+        if (progressImage != null)
+        {
+            progressImage.fillAmount = 0f;
+
+            // Cancela tween anterior, se existir
+            progressTween?.Kill();
+
+            // Cria animação do DOTween
+            progressTween = progressImage
+                .DOFillAmount(1f, finalTime)
+                .SetEase(Ease.Linear);
+        }
+
         StartCoroutine(CollectDelay(finalTime));
+
+
     }
 
     private IEnumerator CollectDelay(float time)
@@ -79,6 +113,8 @@ public class CollectableResource : CollectableObject
 
                 isBeingCollected = false; // <- permite tentar coletar novamente
 
+                HideProgressUI();
+
                 yield break; //  BLOQUEIA A DESTRUIÇÃO DO OBJETO
             }
         }
@@ -91,10 +127,18 @@ public class CollectableResource : CollectableObject
 
             isBeingCollected = false; // <- permite tentar coletar novamente
 
+            HideProgressUI();
+
             yield break; //  BLOQUEIA A DESTRUIÇÃO DO OBJETO
         }
 
+        FloatingTextManager.Instance.CreateText($"+{resourceData.amount} " + resourceData.resourceName, transform.position, Color.yellow);
+
         Destroy(gameObject);
+
+        HideProgressUI();
+
+        UnblockPlayer();
     }
 
     public override bool CanBeCollected(Tools currentTool)
@@ -106,6 +150,22 @@ public class CollectableResource : CollectableObject
             return false;
 
         return currentTool.toolType == resourceData.requiredToolType && currentTool.level >= resourceData.requiredToolLevel;
+    }
+
+    private void UnblockPlayer()
+    {
+        blocked = !blocked;
+
+        Player.Instance?.SetMovementBlocked(blocked);
+        Player.Instance?.SetAttackBlocked(blocked);
+    }
+
+    private void HideProgressUI()
+    {
+        if (worldCanvas != null)
+            worldCanvas.enabled = false;
+
+        progressTween?.Kill();
     }
 
     private float GetRarityReduction(Rarity rarity)

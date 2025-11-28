@@ -14,11 +14,33 @@ public class DialogueUI : MonoBehaviour
     private string[] lines;
 
     private ThirdPersonCamera cameraScript;
+    private bool blocked = false;
 
     private void Awake()
     {
+        // --- Singleton seguro ---
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
+        DontDestroyOnLoad(gameObject);
+
         dialoguePanel.SetActive(false);
+    }
+
+    private void Start()
+    {
+        // Busca a câmera quando a cena inicializa
+        cameraScript = FindAnyObjectByType<ThirdPersonCamera>();
+    }
+
+    // Chamado automaticamente quando muda de cena
+    private void OnLevelWasLoaded(int level)
+    {
+        // Realoca referências perdidas
         cameraScript = FindAnyObjectByType<ThirdPersonCamera>();
     }
 
@@ -29,8 +51,10 @@ public class DialogueUI : MonoBehaviour
         dialoguePanel.SetActive(true);
         nameText.text = npcName;
         dialogueText.text = lines[currentLine];
+        blocked = !blocked;
 
-        Player.Instance?.SetMovementBlocked(true);
+        Player.Instance?.SetMovementBlocked(blocked);
+        Player.Instance?.SetAttackBlocked(blocked);
         cameraScript?.HandleInventoryToggled(true);
         DialogueUIManager.IsDialogueOpen = true;
     }
