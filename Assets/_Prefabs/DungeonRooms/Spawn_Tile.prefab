@@ -545,6 +545,7 @@ GameObject:
   - component: {fileID: 8368483337217501370}
   - component: {fileID: 5180545305849256855}
   - component: {fileID: 7758639152937486020}
+  - component: {fileID: 6062450437574999611}
   m_Layer: 0
   m_Name: NPC
   m_TagString: Untagged
@@ -660,22 +661,65 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPC
   npcName: Robertin
   npcType: 0
+  currentRoutine: 0
   dialogueLines:
   - "Oh, ent\xE3o voc\xEA tamb\xE9m veio explorar o lab\xEDrinto, eu nunca sei onde
     eu vou sair quando entro nela, mas a sa\xEDda sempre \xE9 igual... E por algum
     motivo, eu sempre volto para o mesmo lugar. de onde vim.. Ent\xE3o eu gosto de
     usar para conhecer novas pessoas."
-  interactDistance: 2
+  interactionCount: 0
+  dialogueStages: []
+  emojiCanvas: {fileID: 0}
+  emojiImage: {fileID: 0}
+  happyEmoji: {fileID: 0}
+  angryEmoji: {fileID: 0}
+  loveEmoji: {fileID: 0}
+  questionEmoji: {fileID: 0}
+  surpriseEmoji: {fileID: 0}
+  speechCanvas: {fileID: 0}
+  speechText: {fileID: 0}
+  ambientLines: []
+  randomSpeechInterval: 8
+  workPoint: {fileID: 0}
+  sleepPoint: {fileID: 0}
+  idlePoint: {fileID: 0}
   patrol: 0
   patrolPoints: []
   moveSpeed: 2
   agent: {fileID: 0}
   givesQuest: 0
+  questID: 
   questName: 
+  questDescription: 
   rewardGold: 0
   targetPlayer: {fileID: 0}
   followDistance: 2
   escapeDistance: 3
+  reactsToPlayer: 1
+  lookRange: 5
+  lookSpeed: 2
+--- !u!195 &6062450437574999611
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8386539685850908144}
+  m_Enabled: 1
+  m_AgentTypeID: -1372625422
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1001 &322516608618802868
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -263,7 +263,8 @@ MonoBehaviour:
   showGizmos: 1
   gizmoColor: {r: 0, g: 1, b: 1, a: 1}
   LoadingScreen: {fileID: 0}
-  surface: {fileID: 2131273201}
+  humanSurface: {fileID: 2131273201}
+  ratSurface: {fileID: 2131273201}
 --- !u!4 &2131273200
 Transform:
   m_ObjectHideFlags: 0
@@ -298,7 +299,7 @@ MonoBehaviour:
   m_Center: {x: 0, y: 2, z: 0}
   m_LayerMask:
     serializedVersion: 2
-    m_Bits: 111
+    m_Bits: 4294967295
   m_UseGeometry: 0
   m_DefaultArea: 0
   m_GenerateLinks: 0

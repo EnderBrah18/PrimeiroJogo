@@ -2,6 +2,8 @@
 using UnityEngine;
 using System.Collections;
 using Unity.AI.Navigation;
+using UnityEngine.AI;
+
 
 
 
@@ -38,7 +40,11 @@ public class DungeonGenerator : MonoBehaviour
     public CanvasGroup LoadingScreen;
     private GameObject player_;
 
-    public NavMeshSurface surface;
+    public NavMeshSurface humanSurface;
+    public NavMeshSurface ratSurface;
+
+    private int ratAgentID;
+    private int humanAgentID;
 
     // ============================================================
     // ====================== GERAÇÃO ==============================
@@ -48,6 +54,10 @@ public class DungeonGenerator : MonoBehaviour
         player_ = GameObject.FindGameObjectWithTag("Player");
         player_.transform.position = new Vector3(-25, 1, 1);
         Player.Instance?.SetMovementBlocked(true);
+
+        ratAgentID = NavMesh.GetSettingsByIndex(0).agentTypeID;
+        humanAgentID = NavMesh.GetSettingsByIndex(1).agentTypeID;
+
     }
 
     private void Start()
@@ -193,22 +203,53 @@ public class DungeonGenerator : MonoBehaviour
         mapaGerado = true;
         yield return null;   // garante que Terrains e Colliders foram atualizados
 
-        surface.BuildNavMesh();
+        humanSurface.BuildNavMesh();
+        ratSurface.BuildNavMesh();
+
         foreach (var kvp in placedRooms)
         {
             Room room = kvp.Value;
             if (room == null) continue;
 
+            // Inicializa NPCs
+            NPC[] nPCs = room.GetComponentsInChildren<NPC>();
+            foreach (var npc in nPCs)
+            {
+                if (npc == null) continue;
+
+                NavMeshAgent agent = npc.GetComponent<NavMeshAgent>();
+                if (agent == null) continue;
+
+                // Se houver diferentes tipos de NPCs, define agentTypeID aqui
+                agent.agentTypeID = humanAgentID; // ou outro tipo, se precisar
+
+                npc.InitializeAfterNavmesh();
+            }
+
+            // Inicializa inimigos
             Enemy[] enemies = room.GetComponentsInChildren<Enemy>();
             foreach (var enemy in enemies)
             {
-                if (enemy != null)
-                    enemy.InitializeAfterNavmesh();
+                if (enemy == null) continue;
+
+                NavMeshAgent agent = enemy.GetComponent<NavMeshAgent>();
+                if (agent == null) continue;
+
+                // Decide o agentType baseado no tamanho
+                if (enemy.enemySizeType == EnemySizeType.small)
+                {
+                    agent.agentTypeID = ratAgentID;
+                }
+                else
+                {
+                    agent.agentTypeID = humanAgentID;
+                }
+
+                enemy.InitializeAfterNavmesh();
             }
         }
-        yield return null;   // garantiza que o NavMesh terminou de processar
 
-        MapWasGenerated();
+            MapWasGenerated();
     }
 
     // ============================================================

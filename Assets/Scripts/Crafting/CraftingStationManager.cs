@@ -20,7 +20,6 @@ public class CraftingStationManager : MonoBehaviour
     public InputActionReference interactAction;
     private InteractionHandler interactionHandler;
 
-    private bool blocked = false;
     void Awake()
     {
         Instance = this;
@@ -64,16 +63,24 @@ public class CraftingStationManager : MonoBehaviour
 
         CraftingUI.SetActive(true);
         CraftingUIManager.IsCraftingOpen = true;
-        blocked = !blocked;
 
-        Player.Instance?.SetMovementBlocked(blocked);
-        Player.Instance?.SetAttackBlocked(blocked);
-        cameraScript?.HandleInventoryToggled(blocked);
+        Player.Instance?.SetMovementBlocked(true);
+        Player.Instance?.SetAttackBlocked(true);
+        InventoryManager.Instance?.PlayerHud(false);
+
+        cameraScript?.HandleInventoryToggled(true);
     }
 
     public void CloseStationUI()
     {
         CraftingUI.SetActive(false);
+
+        Player.Instance?.SetMovementBlocked(false);
+        Player.Instance?.SetAttackBlocked(false);
+        InventoryManager.Instance?.PlayerHud(true);
+
+        cameraScript?.HandleInventoryToggled(false);
+
         CraftingUIManager.IsCraftingOpen = false;
 
         currentStation = null;

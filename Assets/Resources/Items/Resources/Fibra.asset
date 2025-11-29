@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceSO
   id: Fiber
   itemName: Fibra
-  icon: {fileID: 0}
+  icon: {fileID: 21300020, guid: bb76618f4bae74c83b9d6654d0b2a47e, type: 3}
   amount: 3
   cost: 1
   description: 

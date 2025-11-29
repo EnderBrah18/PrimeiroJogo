@@ -8,13 +8,25 @@ using static ShopManager;
 
 public class InventoryManager : MonoBehaviour
 {
+    public static InventoryManager Instance;
+
     public GameObject inventoryPanel;
     public ThirdPersonCamera cameraScript; // Referência para seu script de câmera
+    public GameObject hudPanel;
 
     public InputActionReference toggleInventoryAction;
 
     private bool isOpen = false;
     private bool blocked = false;
+
+    private void Awake()
+    {
+
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
+    }
 
     void Update()
     {
@@ -39,7 +51,16 @@ public class InventoryManager : MonoBehaviour
             cameraScript.HandleInventoryToggled(isOpen);
             Player.Instance?.SetMovementBlocked(blocked);// Libera ou bloqueia o mouse/câmera
             Player.Instance?.SetAttackBlocked(blocked);
+            PlayerHud(!isOpen);
+          
         }
+    }
+
+    public void PlayerHud(bool state)
+    {
+
+        hudPanel.SetActive(state);
+
     }
 
 }

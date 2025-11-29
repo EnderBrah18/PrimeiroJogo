@@ -1,12 +1,29 @@
+using DG.Tweening;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
-using System.Collections;
+using UnityEngine.UI;
 
 public enum EnemyPersonality
 {
     Hostile,
     Neutral,
     Friendly
+}
+
+public enum EnemyFightType
+{
+    Melee,
+    Ranged,
+    Boss
+}
+
+public enum EnemySizeType
+{
+    small,
+    medium,
+    large
+
 }
 
 public class Enemy : MonoBehaviour
@@ -33,9 +50,19 @@ public class Enemy : MonoBehaviour
     private int currentPatrolIndex = 0;
     private NavMeshAgent agent;
 
+    [Header("Tipo do Inimigo")]
+    public EnemySizeType enemySizeType;
+    public EnemyFightType enemyFightType;
+
     [Header("Quest Settings")]
     public bool isQuestTarget = false; // Ex: precisa ser morto para completar quest
     public string questName;
+
+    [Header("UI de Vida")]
+    public Canvas worldCanvas;
+    public Image healthBar;
+
+    private Tween healthTween;
 
     private Transform player;
 
@@ -176,6 +203,11 @@ public class Enemy : MonoBehaviour
     {
         currentHealth -= damage;
 
+        if (worldCanvas != null)
+            worldCanvas.gameObject.SetActive(true);
+
+        UpdateHealthUI();
+
         if (currentHealth <= 0)
             Die();
     }
@@ -187,6 +219,7 @@ public class Enemy : MonoBehaviour
         if (isQuestTarget)
             QuestSystem.Instance.CompleteQuest(questName);
 
+        HideHealthUI();
         Destroy(gameObject);
     }
     #endregion
@@ -222,7 +255,11 @@ public class Enemy : MonoBehaviour
         if (agent == null) yield break;
 
         // desativa o navmesh agent temporariamente
-        agent.isStopped = true;
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+        }
+
         agent.updatePosition = false;
         agent.updateRotation = false;
 
@@ -244,6 +281,34 @@ public class Enemy : MonoBehaviour
         agent.Warp(transform.position); // atualiza a posição no navmesh
         agent.updatePosition = true;
         agent.updateRotation = true;
-        agent.isStopped = false;
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+    }
+
+    public void UpdateHealthUI(bool instant = false)
+    {
+        if (healthBar == null) return;
+
+        float fill = (float)currentHealth / maxHealth;
+
+        if (healthTween != null && healthTween.IsActive())
+            healthTween.Kill();
+
+        // Cria a nova tween da barra de vida
+        healthTween = healthBar
+            .DOFillAmount(fill, 0.25f)
+            .SetEase(Ease.OutQuad);
+
+    }
+
+    private void HideHealthUI()
+    {
+        if (worldCanvas != null)
+            worldCanvas.gameObject.SetActive(false);
+
+        healthTween?.Kill();
+
     }
 }

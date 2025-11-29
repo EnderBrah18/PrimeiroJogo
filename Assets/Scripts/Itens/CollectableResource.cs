@@ -77,6 +77,9 @@ public class CollectableResource : CollectableObject
         if (worldCanvas != null)
             worldCanvas.enabled = true;
 
+        if (worldCanvas != null)
+            worldCanvas.gameObject.SetActive(true);
+
         if (progressImage != null)
         {
             progressImage.fillAmount = 0f;
