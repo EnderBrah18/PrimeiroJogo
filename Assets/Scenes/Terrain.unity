@@ -7303,7 +7303,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPC
   npcName: Paulo
   npcType: 0
+  maxHealth: 100
+  currentHealth: 0
+  calmDownDelay: 20
   currentRoutine: 0
+  isSociallyAngry: 0
+  socialAngerDuration: 15
+  canCalmWhileDetecting: 1
+  calmSpeedWhilePlayerNearby: 1
+  calmSpeedWhenPlayerAway: 2
   linearDialogue: []
   playerLines: []
   interactionCount: 0
@@ -7344,6 +7352,15 @@ MonoBehaviour:
   reactsToPlayer: 1
   lookRange: 5
   lookSpeed: 2
+  isHostile: 0
+  isInvincible: 0
+  reputationMode: 0
+  characterId: 
+  factionId: 
+  useFactionReputation: 1
+  reputationBecomeHostileThreshold: -40
+  reputationBecomeFriendlyThreshold: 40
+  reputationChangeOnAttack: -10
 --- !u!195 &483789517
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -7352,7 +7369,7 @@ NavMeshAgent:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 483789510}
   m_Enabled: 1
-  m_AgentTypeID: -1372625422
+  m_AgentTypeID: -334000983
   m_Radius: 0.5
   m_Speed: 3.5
   m_Acceleration: 8
@@ -14693,6 +14710,7 @@ GameObject:
   - component: {fileID: 970759501}
   - component: {fileID: 970759503}
   - component: {fileID: 970759504}
+  - component: {fileID: 970759505}
   m_Layer: 0
   m_Name: testNPC
   m_TagString: Untagged
@@ -14714,25 +14732,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPC
   npcName: NPC_TEST
   npcType: 0
+  maxHealth: 100
+  currentHealth: 0
+  calmDownDelay: 20
   currentRoutine: 0
+  isSociallyAngry: 0
+  socialAngerDuration: 15
+  canCalmWhileDetecting: 1
+  calmSpeedWhilePlayerNearby: 1
+  calmSpeedWhenPlayerAway: 2
   linearDialogue: []
   playerLines: []
   interactionCount: 0
   dialogueStages:
-  - conditions: []
-    lines:
-    - Salve salve
+  - conditions:
+    - type: 
+      variableName: 
+      variableOperator: 
+      variableValue: 0
+      questName: 
+      questCondition: 
+    lines: []
     lineEmojis: []
-    playerOptions:
-    - playerText: "T\xE1 salvado"
-      playerDialogue:
-      - text: Eita papai
-      nextDialogue: []
-      onSelect:
-        m_PersistentCalls:
-          m_Calls: []
-      endsConversation: 0
-      conditions: []
+    playerOptions: []
   interactiveDialogue: 0
   emojiCanvas: {fileID: 0}
   emojiImage: {fileID: 0}
@@ -14765,6 +14787,15 @@ MonoBehaviour:
   reactsToPlayer: 1
   lookRange: 5
   lookSpeed: 2
+  isHostile: 0
+  isInvincible: 0
+  reputationMode: 0
+  characterId: 
+  factionId: 
+  useFactionReputation: 1
+  reputationBecomeHostileThreshold: -40
+  reputationBecomeFriendlyThreshold: 40
+  reputationChangeOnAttack: -10
 --- !u!4 &970759502
 Transform:
   m_ObjectHideFlags: 0
@@ -14824,6 +14855,35 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &970759505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 970759500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 542c0b19f337ec7449954eb09a6f7890, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  enemyName: 
+  personality: 0
+  maxHealth: 100
+  currentHealth: 0
+  attackDamage: 10
+  detectionRange: 5
+  attackRange: 1.5
+  attackCooldown: 1
+  patrol: 0
+  patrolPoints: []
+  moveSpeed: 3
+  enemySizeType: 0
+  enemyFightType: 0
+  isQuestTarget: 0
+  questName: 
+  worldCanvas: {fileID: 0}
+  healthBar: {fileID: 0}
 --- !u!1001 &975048590
 PrefabInstance:
   m_ObjectHideFlags: 0

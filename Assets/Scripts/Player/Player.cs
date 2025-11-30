@@ -802,39 +802,67 @@ public class Player : MonoBehaviour
     {
         Vector3 origin = transform.position + Vector3.up * 1f;
         Vector3 dir = transform.forward;
-        // esfera projetada à frente do jogador
+
         RaycastHit[] hits = Physics.SphereCastAll(origin, attackHitRadius, dir, attackRange, attackLayerMask, QueryTriggerInteraction.Ignore);
+
         foreach (var hit in hits)
         {
             if (hit.collider == null) continue;
+
+            Vector3 pushDir = (hit.collider.transform.position - transform.position);
+            pushDir.y = 0;
+            if (pushDir.sqrMagnitude == 0) pushDir = dir;
+
+            // 1️⃣ Tenta achar NPC
+            NPC npc = hit.collider.GetComponentInParent<NPC>();
+            if (npc != null)
+            {
+                npc.ReceiveDamage(Mathf.RoundToInt(attackDamage));
+
+                if (!npc.isInvincible)
+                {
+                    FloatingTextManager.Instance.CreateText(
+                        "-" + attackDamage + " dealt to " + npc.npcName,
+                        transform.position,
+                        Color.red
+                    );
+
+                    ApplyKnockback(npc.gameObject, pushDir);
+                }
+                continue;
+            }
+
+            // 2️⃣ Se não achou NPC, tenta achar Enemy
             Enemy enemy = hit.collider.GetComponentInParent<Enemy>();
             if (enemy == null) continue;
 
-            // aplica dano (converte para int)
             enemy.TakeDamage(Mathf.RoundToInt(attackDamage));
-            FloatingTextManager.Instance.CreateText("-" + attackDamage.ToString() + " dealt to " + enemy.enemyName, transform.position, Color.red);
 
-            // aplica knockback: se tiver Rigidbody usa força, se tiver NavMeshAgent tenta mover
-            Rigidbody rb = enemy.GetComponent<Rigidbody>();
-            Vector3 pushDir = (enemy.transform.position - transform.position);
-            pushDir.y = 0;
-            if (pushDir.sqrMagnitude == 0) pushDir = dir;
-            if (rb != null)
-            {
-                rb.AddForce(pushDir.normalized * attackKnockback, ForceMode.Impulse);
-            }
-            else
-            {
-                NavMeshAgent agent = enemy.GetComponent<NavMeshAgent>();
-                if (agent != null)
-                {
-                    // move temporariamente o agente; não é física perfeita, mas cria efeito de empurrão
-                    enemy.ApplyKnockback(pushDir, attackKnockback);
-                }
-            }
+            FloatingTextManager.Instance.CreateText(
+                "-" + attackDamage.ToString() + " dealt to " + enemy.enemyName,
+                transform.position,
+                Color.red
+            );
+
+            ApplyKnockback(enemy.gameObject, pushDir);
         }
     }
 
+    void ApplyKnockback(GameObject target, Vector3 pushDir)
+    {
+        Rigidbody rb = target.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.AddForce(pushDir.normalized * attackKnockback, ForceMode.Impulse);
+            return;
+        }
+
+        var enemy = target.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.ApplyKnockback(pushDir, attackKnockback);
+        }
+    }
 
     void HandleAttackRotation()
     {

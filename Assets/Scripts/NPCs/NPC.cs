@@ -7,6 +7,13 @@ using UnityEngine.AI;
 using UnityEngine.UI;
 using static NPC;
 using static QuestSystem;
+using static ReputationSystem;
+
+
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public enum NPCType
 {
@@ -48,14 +55,33 @@ public class NPC : InteractableBase, ISavable
         public string questID;
         public string questState;
         public int currentPatrolIndex;
+        public int maxHealth;
+        public int currentHealth;
     }
 
+    #region NPC Settings
     [Header("Base Settings")]
     public string npcName;
     public NPCType npcType;
 
+    [Header("Health")]
+    public int maxHealth = 100;
+    public int currentHealth;
+    [Tooltip("Tempo em segundos para o NPC 'acalmar' e voltar a ser amigável")]
+    public float calmDownDelay = 20f;
+
     [Header("Daily Routine")]
+    private Coroutine _calmCoroutine;
     public NPCRoutine currentRoutine;
+
+    [Header("Social Anger Settings")]
+    public bool isSociallyAngry = false;   // controla se o NPC bloqueia loja/diálogo
+    public float socialAngerDuration = 15f; // tempo que ele permanece bravo socialmente após se acalmar
+    private Coroutine _socialAngerCoroutine;
+
+    public bool canCalmWhileDetecting = true; // para guardas, false
+    public float calmSpeedWhilePlayerNearby = 1f; // normal
+    public float calmSpeedWhenPlayerAway = 2f;    // acelera
 
     [Header("Dialogue Settings")]
     public DialogueLine[] linearDialogue;
@@ -123,6 +149,40 @@ public class NPC : InteractableBase, ISavable
     public float lookRange = 5f;
     public float lookSpeed = 2f;
 
+    #endregion
+
+    [Header("Hostility")]
+    public bool isHostile = false;
+    private Enemy enemyBehaviour;
+    [Header("Configurações de Combate")]
+    public bool isInvincible = false;
+
+
+    // Adições / alterações dentro da classe NPC:
+
+    public enum ReputationMode
+    {
+        CharacterPriority,  // a reputação individual tem prioridade
+        FactionPriority,    // a reputação da facção tem prioridade
+        Average              // média entre as duas
+    }
+
+    // no NPC
+    public ReputationMode reputationMode = ReputationMode.CharacterPriority;
+
+    // Identificador único para mapear reputação neste personagem
+    [Header("Reputation")]
+    [Tooltip("Identificador único usado pelo ReputationSystem (ex: 'NPC_Bob')")]
+    public string characterId;
+    public string factionId;
+    public bool useFactionReputation = true;
+    [Tooltip("Thresholds para reagir à reputação")]
+    public int reputationBecomeHostileThreshold = -40;
+    public int reputationBecomeFriendlyThreshold = 40;
+
+    // Valor de reputação aplicado quando o player ataca este NPC (por instância de ataque)
+    public int reputationChangeOnAttack = -10;
+
     private void Start()
     {
         SaveSystem.Instance.RegisterSavable(this);
@@ -137,10 +197,14 @@ public class NPC : InteractableBase, ISavable
         }
         else
         {
-            Debug.LogWarning("NPC não conseguiu encontrar posição válida na NavMesh!");
+            Debug.LogWarning("NPC não consegui encontrar posição válida na NavMesh!");
         }
 
         agent.speed = moveSpeed;
+
+        // Inicializa vida do NPC (não sobrescreve se já definido)
+        if (maxHealth <= 0) maxHealth = 100;
+        if (currentHealth <= 0) currentHealth = maxHealth;
 
         // Canvas sempre desligados por padrão
         if (emojiCanvas) emojiCanvas.gameObject.SetActive(false);
@@ -149,6 +213,34 @@ public class NPC : InteractableBase, ISavable
         // Fala ambiente automática
         if (ambientLines != null && ambientLines.Length > 0)
             StartCoroutine(RandomSpeechRoutine());
+
+        enemyBehaviour = GetComponent<Enemy>();
+
+        if (enemyBehaviour != null)
+            enemyBehaviour.enabled = false; // NPC é pacífico por padrão
+
+        // Inscrever-se no sistema de reputação (se existir e tiver id)
+        if (ReputationSystem.Instance == null) return;
+
+        // Registrar reputação da FACÇÃO
+        if (!string.IsNullOrEmpty(factionId))
+            ReputationSystem.Instance.Subscribe(factionId, OnReputationChanged);
+
+        if (!string.IsNullOrEmpty(characterId))
+            ReputationSystem.Instance.Subscribe(characterId, OnReputationChanged);
+
+        OnReputationChanged(0);
+    }
+
+    private void OnDestroy()
+    {
+        if (ReputationSystem.Instance == null) return;
+
+        if (!string.IsNullOrEmpty(factionId))
+            ReputationSystem.Instance.Unsubscribe(factionId, OnReputationChanged);
+
+        if (!string.IsNullOrEmpty(characterId))
+            ReputationSystem.Instance.Unsubscribe(characterId, OnReputationChanged);
     }
 
     private void Update()
@@ -157,6 +249,7 @@ public class NPC : InteractableBase, ISavable
         HandleSpecialBehavior();
     }
 
+    #region NPC BUILD
     public void InitializeAfterNavmesh()
     {
         if (agent == null)
@@ -421,6 +514,11 @@ public class NPC : InteractableBase, ISavable
                     cond.variableOperator,
                     cond.variableValue);
 
+            case "SOCIAL_ANGER":
+                return isSociallyAngry == true;
+            case "NOT_SOCIAL_ANGER":
+                return isSociallyAngry == false;
+
             case "QUEST":
                 if (cond.questCondition == "ACTIVE")
                     return QuestSystem.Instance.HasQuest(cond.questName);
@@ -590,8 +688,14 @@ public class NPC : InteractableBase, ISavable
         Debug.Log($"{npcName} reagiu à conclusão da quest {quest.questName}");
     }
 
+    public bool CanInteract()
+    {
+        return !isHostile && !isSociallyAngry;
+    }
+
     public void OpenShop()
     {
+        if (!CanInteract()) return;
         ShopManager.Instance.ShopUI.SetActive(true);
         ShowEmoji(surpriseEmoji);
     }
@@ -659,6 +763,311 @@ public class NPC : InteractableBase, ISavable
         public string text;
     }
 
+    #endregion
+
+    private string _previousTag = null;
+
+
+    public void BecomeHostile(float delay = 0f)
+    {
+        if (isHostile) return;
+        StartCoroutine(BecomeHostileRoutine(delay));
+    }
+
+    private IEnumerator BecomeHostileRoutine(float delay)
+    {
+        if (isHostile) yield break;
+        isHostile = true;
+
+        Debug.Log($"{npcName} iniciando transição para hostilidade...");
+
+        // Não force fechamento do diálogo — espere o jogador fechá-lo
+        isInteracting = false;
+
+        if (DialogueUI.Instance != null && DialogueUI.DialogueUIManager.IsDialogueOpen)
+        {
+            Debug.Log($"{npcName} aguardando o jogador fechar o diálogo...");
+            yield return new WaitUntil(() => !DialogueUI.DialogueUIManager.IsDialogueOpen);
+            Debug.Log($"{npcName} detectou que o diálogo foi fechado, continuando...");
+        }
+
+        // Animação de virar inimigo (DOTween)
+        if (transform)
+        {
+            transform.DOShakePosition(0.4f, 0.3f, 20);
+            transform.DOScale(1.1f, 0.2f).SetLoops(2, LoopType.Yoyo);
+        }
+
+        // Esperar delay configurado
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
+        // Só agora ativamos o comportamento Enemy
+        ActivateEnemyBehaviour();
+
+        Debug.Log($"{npcName} tornou-se hostil!");
+    }
+
+    private void ActivateEnemyBehaviour()
+    {
+        if (enemyBehaviour == null)
+            enemyBehaviour = GetComponent<Enemy>() ?? gameObject.AddComponent<Enemy>();
+
+        // Ajusta stats do Enemy com base no NPC (não resetar vida)
+        enemyBehaviour.enabled = true;
+        enemyBehaviour.personality = EnemyPersonality.Hostile;
+
+        enemyBehaviour.enemyName = npcName;
+
+        // manter o mesmo maxHealth/curHealth
+        enemyBehaviour.maxHealth = Mathf.Max(1, maxHealth);
+        enemyBehaviour.currentHealth = Mathf.Clamp(currentHealth, 0, enemyBehaviour.maxHealth);
+
+        enemyBehaviour.moveSpeed = moveSpeed;
+
+        // Ativar NavMeshAgent
+        if (agent == null)
+            agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (agent != null)
+            agent.enabled = true;
+
+        // Trocar tag
+        _previousTag = gameObject.tag;
+        gameObject.tag = "Enemy";
+    }
+
+    // Recebe dano direcionado ao NPC. Se atacado, fica hostil e encaminha o dano ao Enemy.
+    public void ReceiveDamage(int damage, bool fromPlayer = true)
+    {
+
+        if (isInvincible)
+        {
+            // NPC ignora dano, mas reputação pode cair
+            if (fromPlayer && !string.IsNullOrEmpty(characterId) && ReputationSystem.Instance != null)
+            {
+                if (ReputationSystem.Instance.CanModify(characterId))
+                    ReputationSystem.Instance.AdjustReputation(characterId, reputationChangeOnAttack);
+            }
+
+            if (fromPlayer && !string.IsNullOrEmpty(factionId) && ReputationSystem.Instance != null)
+            {
+                if (ReputationSystem.Instance.CanModify(factionId))
+                    ReputationSystem.Instance.AdjustReputation(factionId, reputationChangeOnAttack);
+            }
+
+            return;
+        }
+
+        if (damage <= 0) return;
+
+        // cancelar timer de acalmar se houver
+        CancelCalmDownTimer();
+
+        // se ataque foi do jogador (flag), ajustar reputação negativa
+        if (fromPlayer && !string.IsNullOrEmpty(characterId) && ReputationSystem.Instance != null)
+        {
+            if (ReputationSystem.Instance.CanModify(characterId))
+                ReputationSystem.Instance.AdjustReputation(characterId, reputationChangeOnAttack);
+        }
+
+        if (fromPlayer && !string.IsNullOrEmpty(factionId) && ReputationSystem.Instance != null)
+        {
+            if (ReputationSystem.Instance.CanModify(factionId))
+                ReputationSystem.Instance.AdjustReputation(factionId, reputationChangeOnAttack);
+        }
+
+        // Se não for hostil ainda, torna hostil imediatamente (vai ativar Enemy)
+        if (!isHostile)
+        {
+            BecomeHostile(0f); // sem delay, ou passe um pequeno delay se quiser
+        }
+
+        // Fica socialmente bravo
+        if (_socialAngerCoroutine != null) StopCoroutine(_socialAngerCoroutine);
+        isSociallyAngry = true;
+        _socialAngerCoroutine = StartCoroutine(SocialAngerTimer());
+
+        // garante que o Enemy esteja ativo para processar dano
+        if (enemyBehaviour == null)
+            enemyBehaviour = GetComponent<Enemy>() ?? gameObject.GetComponent<Enemy>();
+
+        // Aplica dano:
+        if (enemyBehaviour != null && enemyBehaviour.enabled)
+        {
+            // usa método do Enemy para efeitos e morte
+            enemyBehaviour.TakeDamage(damage);
+            // sincroniza vida de NPC com Enemy
+            currentHealth = enemyBehaviour.currentHealth;
+        }
+        else
+        {
+            // fallback: reduz diretamente a vida do NPC
+            currentHealth -= damage;
+            currentHealth = Mathf.Max(0, currentHealth);
+            if (currentHealth <= 0)
+            {
+                // comportamento simples: passa a "morto" — aqui apenas destrói o objeto
+                Debug.Log($"{npcName} (NPC) morreu.");
+                Destroy(gameObject);
+                return;
+            }
+        }
+
+        // Inicia/renova timer para voltar a ser amigável após calmDownDelay
+        if (calmDownDelay > 0f)
+            _calmCoroutine = StartCoroutine(CalmDownCoroutine(calmDownDelay));
+    }
+
+    private void CancelCalmDownTimer()
+    {
+        if (_calmCoroutine != null)
+        {
+            StopCoroutine(_calmCoroutine);
+            _calmCoroutine = null;
+        }
+    }
+
+    private IEnumerator CalmDownCoroutine(float delay)
+    {
+        float elapsed = 0f;
+        while (elapsed < delay)
+        {
+            // Se player estiver no range de detecção
+            if (reactsToPlayer && IsPlayerInRange())
+            {
+                if (canCalmWhileDetecting)
+                    elapsed += Time.deltaTime * calmSpeedWhilePlayerNearby;
+                // caso contrário, não aumenta elapsed
+            }
+            else
+            {
+                elapsed += Time.deltaTime * calmSpeedWhenPlayerAway; // acelera calm down
+            }
+
+            yield return null;
+        }
+
+        BecomeFriendly();
+        _calmCoroutine = null;
+    }
+
+    private IEnumerator SocialAngerTimer()
+    {
+        yield return new WaitForSeconds(socialAngerDuration);
+        isSociallyAngry = false;
+        _socialAngerCoroutine = null;
+    }
+
+    private bool IsPlayerInRange()
+    {
+        if (targetPlayer == null) return false;
+        float dist = Vector3.Distance(transform.position, targetPlayer.position);
+        return dist <= lookRange;
+    }
+
+    public void BecomeFriendly()
+    {
+        if (!isHostile) return;
+
+        // Marca como não hostil
+        isHostile = false;
+
+        // Fecha comportamentos de combate e retorna controle de interação
+        if (enemyBehaviour != null)
+        {
+            // sincroniza vida do Enemy de volta para o NPC antes de desligar
+            currentHealth = Mathf.Clamp(enemyBehaviour.currentHealth, 0, Mathf.Max(1, enemyBehaviour.maxHealth));
+            enemyBehaviour.enabled = false;
+            enemyBehaviour.personality = EnemyPersonality.Neutral;
+        }
+
+        // Reativa o script NPC (lógica de diálogo/rotina)
+        this.enabled = true;
+        isInteracting = false;
+
+        // Reativa componentes InteractableBase para permitir interações novamente
+        foreach (var interactable in GetComponents<InteractableBase>())
+        {
+            if (interactable != null)
+                interactable.enabled = true;
+        }
+
+        // Reativa UIs de NPC (mantém escondidas até necessário)
+        if (emojiCanvas) emojiCanvas.gameObject.SetActive(false);
+        if (speechCanvas) speechCanvas.gameObject.SetActive(false);
+
+        // Garante que o NavMeshAgent exista e pare qualquer caminho atual
+        if (agent == null)
+            agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.ResetPath();
+            agent.enabled = true;
+            agent.speed = moveSpeed;
+        }
+
+        // Volta para a posição original registrada (se houver)
+        if (originalPosition.sqrMagnitude > 0.01f && agent != null && agent.isOnNavMesh)
+        {
+            agent.Warp(originalPosition);
+        }
+        else if (originalPosition.sqrMagnitude > 0.01f)
+        {
+            transform.position = originalPosition;
+        }
+
+        // Restaura rotina (ex.: voltar a patrulhar)
+        currentPatrolIndex = Mathf.Clamp(currentPatrolIndex, 0, (patrolPoints != null && patrolPoints.Length > 0) ? patrolPoints.Length - 1 : 0);
+        // garante que o NPC comece a seguir sua rotina novamente
+        HandleRoutine();
+
+        // Restaura tag anterior, se houver
+        if (!string.IsNullOrEmpty(_previousTag))
+        {
+            try { gameObject.tag = _previousTag; } catch { /* ignora se inválida */ }
+            _previousTag = null;
+        }
+
+        Debug.Log($"{npcName} voltou a ser NPC amigável e retornou à rotina.");
+    }
+
+    private void OnReputationChanged(int _)
+    {
+        int charRep = ReputationSystem.Instance.GetReputation(characterId);
+        int facRep = ReputationSystem.Instance.GetReputation(factionId);
+
+        int effectiveRep;
+
+        switch (reputationMode)
+        {
+            case ReputationMode.CharacterPriority:
+                effectiveRep = charRep != 0 ? charRep : facRep;
+                break;
+
+            case ReputationMode.FactionPriority:
+                effectiveRep = facRep != 0 ? facRep : charRep;
+                break;
+
+            default: // média
+                effectiveRep = Mathf.RoundToInt((charRep + facRep) * 0.5f);
+                break;
+        }
+
+        ReactToReputationValue(effectiveRep);
+    }
+
+    private void ReactToReputationValue(int rep)
+    {
+        if (rep <= reputationBecomeHostileThreshold && !isHostile)
+        {
+            BecomeHostile();
+        }
+        else if (rep >= reputationBecomeFriendlyThreshold && isHostile)
+        {
+            BecomeFriendly();
+        }
+        // entre thresholds -> estado neutro (não força mudança)
+    }
 
     public string GetSaveKey() => $"NPC_{npcName}";
 
@@ -670,7 +1079,9 @@ public class NPC : InteractableBase, ISavable
             position = transform.position,
             interactionCount = interactionCount,
             currentRoutine = currentRoutine.ToString(),
-            hasQuest = questID != null
+            hasQuest = questID != null,
+            maxHealth = maxHealth,
+            currentHealth = currentHealth
         };
         return JsonUtility.ToJson(data);
     }
@@ -681,6 +1092,33 @@ public class NPC : InteractableBase, ISavable
         transform.position = data.position;
         interactionCount = data.interactionCount;
         currentRoutine = (NPCRoutine)System.Enum.Parse(typeof(NPCRoutine), data.currentRoutine);
+
+        // Carregar vida, se presente
+        if (data.maxHealth > 0) maxHealth = data.maxHealth;
+        if (data.currentHealth > 0) currentHealth = data.currentHealth;
     }
+
+#if UNITY_EDITOR
+    [CustomEditor(typeof(NPC))]
+    public class NPCEditor : Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+
+            NPC npc = (NPC)target;
+
+            if (GUILayout.Button("Testar: Virar Inimigo"))
+            {
+                npc.BecomeHostile();
+            }
+
+            if (GUILayout.Button("Testar: Virar Amigo"))
+            {
+                npc.BecomeFriendly();
+            }
+        }
+    }
+#endif
 
 }
