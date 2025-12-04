@@ -198,11 +198,12 @@ public class NPC : InteractableBase, ISavable
 
     // Valor de reputação aplicado quando o player ataca este NPC (por instância de ataque)
     public int reputationChangeOnAttack = -10;
-
+    private Rigidbody myRB;
     void Awake()
     {
         float neighborRadius = 5f;
         float maxRadius = 20f;
+        myRB = GetComponent<Rigidbody>();
 
         foreach (var wp in waypoints)
         {
@@ -558,38 +559,81 @@ public class NPC : InteractableBase, ISavable
         transform.position = target.position;
     }
 
-    private void MoveToWaypoint(Transform target, float currentDistance = -1f)
+    private void MoveToWaypoint(Transform target)
     {
-        if (currentDistance < 0f)
-            currentDistance = Vector3.Distance(transform.position, target.position);
+        float dist = Vector3.Distance(transform.position, target.position);
+        if (dist <= waypointThreshold)
+            return;
 
-        if (currentDistance <= waypointThreshold)
-            return; // Já está suficientemente próximo, não move
+        // DIREÇÃO PRINCIPAL
+        Vector3 dirMain = (target.position - transform.position).normalized;
 
-        Vector3 dir = (target.position - transform.position).normalized;
+        // COMEÇAMOS COM ELA
+        Vector3 moveDir = dirMain;
 
-        // Steering local para evitar NPCs próximos
+        // ============================================
+        // 1) AVOIDANCE SUAVE E CONTROLADO
+        // ============================================
         Collider[] nearby = Physics.OverlapSphere(transform.position, avoidanceRadius, npcLayer);
-        Vector3 avoidance = Vector3.zero;
+
+        Vector3 avoid = Vector3.zero;
+        int count = 0;
 
         foreach (var col in nearby)
         {
-            if (col.gameObject == gameObject) continue;
-            Vector3 away = transform.position - col.transform.position;
-            if (away.magnitude > 0.01f) avoidance += away.normalized / away.magnitude;
+            // IGNORA A SI MESMO
+            if (col.attachedRigidbody == myRB)
+                continue;
+
+            // IGNORA TRIGGERS
+            if (col.isTrigger)
+                continue;
+
+            Vector3 toOther = col.transform.position - transform.position;
+            float d = toOther.magnitude;
+
+            // Só desvia se o outro NPC estiver NA FRENTE
+            if (Vector3.Dot(dirMain, toOther.normalized) > 0.5f)
+            {
+                Vector3 side = Vector3.Cross(Vector3.up, toOther).normalized;
+
+                // força proporcional à proximidade
+                float strength = Mathf.Lerp(0.6f, 0.05f, d / avoidanceRadius);
+
+                avoid += side * strength;
+                count++;
+            }
         }
 
-        if (avoidance.sqrMagnitude > 0.001f)
-            dir += avoidance.normalized * 0.5f;
-
-        dir = Vector3.ClampMagnitude(dir, 1f);
-        transform.position += dir * maxSpeed * Time.deltaTime;
-
-        if (dir.sqrMagnitude > 0.001f)
+        if (count > 0)
         {
-            Quaternion targetRot = Quaternion.LookRotation(dir);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
+            avoid /= count;
+
+            // CONTROLAR — nunca mais forte que a direção principal
+            avoid = Vector3.ClampMagnitude(avoid, 0.4f);
+
+            // Adiciona um *pouco*
+            moveDir += avoid;
         }
+
+        // ============================================
+        // 2) RENORMALIZA
+        // ============================================
+        moveDir.Normalize();
+
+        // ============================================
+        // 3) MOVIMENTO FINAL — sem overshoot
+        // ============================================
+        transform.position += moveDir * maxSpeed * Time.deltaTime;
+
+        // ============================================
+        // 4) ROTAÇÃO SUAVE
+        // ============================================
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            Quaternion.LookRotation(moveDir),
+            Time.deltaTime * rotationSpeed
+        );
     }
 
     private Transform GetRoutineDestination()
