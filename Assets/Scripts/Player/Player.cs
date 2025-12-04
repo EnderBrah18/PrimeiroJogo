@@ -167,6 +167,7 @@ public class Player : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("PLAYER AWAKE");
 
         if (Instance != null && Instance != this)
         {
@@ -817,7 +818,7 @@ public class Player : MonoBehaviour
             NPC npc = hit.collider.GetComponentInParent<NPC>();
             if (npc != null)
             {
-                npc.ReceiveDamage(Mathf.RoundToInt(attackDamage));
+                //npc.ReceiveDamage(Mathf.RoundToInt(attackDamage));
 
                 if (!npc.isInvincible)
                 {

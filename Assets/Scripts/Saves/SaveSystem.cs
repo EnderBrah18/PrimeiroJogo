@@ -21,6 +21,8 @@ public class SaveSystem : MonoBehaviour
             return;
         }
 
+        Debug.Log("SAVE SYSTEM AWAKE");
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }

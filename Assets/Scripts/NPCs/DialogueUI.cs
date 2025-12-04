@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,18 +21,38 @@ public class DialogueUI : MonoBehaviour
     public TMP_Text playerDialogueText;
     public GameObject playerDialoguePanel;
 
+    public GameObject npcNextButton;
+    public GameObject playerNextButton;
+
     private NPC currentNPC;
-    private string[] npcLines;
     private Sprite[] npcEmojis;
     private int currentLine = -1;
 
     private DialogueOption[] currentOptions;
     private DialogueOption selectedPlayerOption;
-    private DialogueLine[] currentLinearDialogue;
 
     private bool waitingForPlayerDialogue = false;
 
     private ThirdPersonCamera cameraScript;
+
+    public enum DialogueMode
+    {
+        None,
+        Normal,
+        Linear,
+        Interactive
+    }
+
+    private DialogueMode mode = DialogueMode.None;
+
+    private int currentIndex = 0;
+    private int playerDialogueIndex = 0;
+    private string[] currentPlayerLines;
+
+    private string[] activeLines;
+    private Sprite[] activeEmojis;
+
+    private DialogueLine[] activeLinearLines;
 
     private void Awake()
     {
@@ -54,88 +75,117 @@ public class DialogueUI : MonoBehaviour
     }
 
     #region Dialogue Flow
-    public void StartDialogue(NPC npc, string[] dialogueLines, Sprite[] lineEmojis)
+    public void StartDialogue(NPC npc, string[] lines, Sprite[] emojis)
     {
-        if (DialogueUIManager.IsDialogueOpen)
-        {
-            CloseDialogueUI();
-            return;
-        }
+        mode = DialogueMode.Normal;
 
         currentNPC = npc;
-        npcLines = dialogueLines;
-        npcEmojis = lineEmojis;
-        currentLine = 0;
-        // Não zere currentOptions aqui: StartInteractiveDialogue já configura as opções
-        selectedPlayerOption = null;
+        activeLines = lines;
+        activeEmojis = emojis;
+        currentIndex = 0;
 
-        dialoguePanel.SetActive(true);
-        nameText.text = npc.npcName;
-        dialogueText.text = npcLines[currentLine];
-
-        Player.Instance?.SetMovementBlocked(true);
-        Player.Instance?.SetAttackBlocked(true);
-        InventoryManager.Instance?.PlayerHud(false);
-        cameraScript?.HandleInventoryToggled(true);
-        DialogueUIManager.IsDialogueOpen = true;
-
-        TriggerLineEffects();
-
-        // Se houver opções configuradas (diálogo interativo), mostre os botões
-        if (currentOptions != null && currentOptions.Length > 0)
-        {
-            ShowPlayerOptions(currentNPC, currentOptions);
-        }
+        SetupDialogueUI();
+        ShowCurrentLine();
     }
+
     public void StartLinearDialogue(NPC npc, DialogueLine[] lines)
     {
-        currentNPC = npc;
-        currentLinearDialogue = lines;
-        currentLine = -1;
+        mode = DialogueMode.Linear;
 
-        NextLine(); // inicia a primeira linha
+        currentNPC = npc;
+        activeLinearLines = lines;
+        currentIndex = 0;
+
+        SetupDialogueUI();
+        ShowCurrentLine();
     }
 
     public void NextLine()
     {
-        // Se estamos esperando o player terminar a fala, apenas fecha o painel
+        // PLAYER ESTÁ FALANDO:
         if (waitingForPlayerDialogue)
         {
-            playerDialoguePanel.SetActive(false);
+            playerDialogueIndex++;
+
+            // ainda existem linhas do player?
+            if (playerDialogueIndex < currentPlayerLines.Length)
+            {
+                playerDialogueText.text = currentPlayerLines[playerDialogueIndex];
+                return; // NÃO processa a opção ainda
+            }
+
+            // acabou as falas do player
             waitingForPlayerDialogue = false;
-            currentLine++; // avança para a próxima linha do NPC
-        }
-        else
-        {
-            // Se não estamos esperando player, avançamos normalmente
-            currentLine++;
+            playerDialoguePanel.SetActive(false);
+
+            // agora sim, processa a opção
+            if (selectedPlayerOption != null)
+            {
+                ProcessPlayerOption(currentNPC, selectedPlayerOption);
+                return;
+            }
+
+            // fallback
+            currentIndex++;
+            CheckEndOrContinue();
+            return;
         }
 
-        // Checa se acabou o diálogo
-        if (currentLine >= npcLines.Length)
+        // NPC ESTÁ FALANDO
+        currentIndex++;
+        UpdateNextButtons();
+        CheckEndOrContinue();
+    }
+
+    private void CheckEndOrContinue()
+    {
+        bool ended = false;
+
+        if (mode == DialogueMode.Linear)
+            ended = currentIndex >= activeLinearLines.Length;
+        else
+            ended = currentIndex >= activeLines.Length;
+
+        if (ended)
         {
+            // DIÁLOGO INTERATIVO  MOSTRA OPÇÕES
+            if (mode == DialogueMode.Interactive && currentOptions != null && currentOptions.Length > 0)
+            {
+                playerDialoguePanel.SetActive(false);
+                optionsContainer.gameObject.SetActive(true);
+
+                ShowPlayerOptions(currentNPC, currentOptions);
+
+                npcNextButton?.SetActive(false);
+                playerNextButton?.SetActive(false);
+                return;
+            }
+
             CloseDialogueUI();
             return;
         }
 
-        // Mostra fala do NPC
-        dialoguePanel.SetActive(true);
-        playerDialoguePanel.SetActive(false);
-        dialogueText.text = npcLines[currentLine];
-        TriggerLineEffects();
-
-        // Checa se existe fala do player **logo após esta linha**
-        if (currentNPC.playerLines != null &&
-            currentNPC.playerLines.Length > currentLine &&
-            !string.IsNullOrEmpty(currentNPC.playerLines[currentLine]))
-        {
-            waitingForPlayerDialogue = true;
-            playerDialoguePanel.SetActive(true);
-            dialoguePanel.SetActive(false);
-            playerNameText.text = "Você";
-            playerDialogueText.text = currentNPC.playerLines[currentLine];
-        }
+        ShowCurrentLine();
     }
+
+    private void UpdateNextButtons()
+    {
+        if (waitingForPlayerDialogue)
+        {
+            // Jogador está falando  botão do jogador ativo
+            npcNextButton?.SetActive(false);
+            playerNextButton?.SetActive(true);
+            return;
+        }
+
+        // NPC está falando
+        npcNextButton?.SetActive(true);
+        playerNextButton?.SetActive(false);
+
+        
+    }
+        
+
 
     private void TriggerLineEffects()
     {
@@ -151,10 +201,21 @@ public class DialogueUI : MonoBehaviour
     #endregion
 
     #region Interactive Dialogue
-    public void StartInteractiveDialogue(NPC npc, DialogueSet stage)
+    public void StartInteractiveDialogue(NPC npc, DialogueSet set)
     {
-        currentOptions = stage.playerOptions;
-        StartDialogue(npc, stage.lines, stage.lineEmojis);
+        Debug.Log("START INTERACTIVE Options: " + set.playerOptions?.Length);
+
+        mode = DialogueMode.Interactive;
+
+        currentNPC = npc;
+        activeLines = set.lines;
+        activeEmojis = set.lineEmojis;
+        currentOptions = set.playerOptions;
+
+        currentIndex = 0;
+
+        SetupDialogueUI();
+        ShowCurrentLine();
     }
 
     public void ShowPlayerOptions(NPC npc, DialogueOption[] options)
@@ -180,9 +241,16 @@ public class DialogueUI : MonoBehaviour
     {
         selectedPlayerOption = option;
 
+        if (option.endsConversation)
+        {
+            CloseDialogueUI();
+            return;
+        }
+
+
         if (option.playerDialogue != null && option.playerDialogue.Length > 0 && !string.IsNullOrEmpty(option.playerDialogue[0].text))
         {
-            ShowPlayerDialogue(option.playerDialogue[0].text);
+            ShowPlayerDialogue(option.playerDialogue.Select(p => p.text).ToArray());
         }
         else
         {
@@ -193,33 +261,129 @@ public class DialogueUI : MonoBehaviour
 
     private void ProcessPlayerOption(NPC npc, DialogueOption option)
     {
+        selectedPlayerOption = null; //  EVITA LOOP LÓGICO
+
         option.onSelect?.Invoke();
 
-        if (option.endsConversation)
+        if (option.sendToQuestSystem && !string.IsNullOrEmpty(option.targetID))
         {
-            CloseDialogueUI();
-            return;
+            // Registra variável no sistema global
+            GlobalVariableSystem.Instance.SetValue(option.targetID, option.progressAmount);
+
+            // Notifica progresso de quest
+            QuestSystem.Instance.RegisterProgress(option.targetID, option.progressAmount);
+
+            Debug.Log($"[Dialogue] Enviando progresso: ({option.targetID}) +{option.progressAmount}");
         }
 
         if (option.nextDialogue != null && option.nextDialogue.Length > 0)
         {
-            DialogueSet nextStage = option.nextDialogue[0];
-            StartInteractiveDialogue(npc, nextStage);
+            StartInteractiveDialogue(npc, option.nextDialogue[0]);
+            return;
         }
-        else
+
+        if (option.returnToThisDialogue)
         {
-            CloseDialogueUI();
+            ReturnToLastDialogue(npc);
+            return;
         }
+
+        CloseDialogueUI();
     }
 
-    public void ShowPlayerDialogue(string text)
+    private void ReturnToLastDialogue(NPC npc)
+    {
+        currentIndex = activeLines.Length - 1;
+
+        dialoguePanel.SetActive(true);
+        playerDialoguePanel.SetActive(false);
+
+        dialogueText.text = activeLines[currentIndex];
+
+        optionsContainer.gameObject.SetActive(true);
+        ShowPlayerOptions(npc, currentOptions);
+
+        npcNextButton?.SetActive(false);
+        playerNextButton?.SetActive(false);
+    }
+
+    public void ShowPlayerDialogue(string[] lines)
     {
         waitingForPlayerDialogue = true;
+
+        currentPlayerLines = lines;
+        playerDialogueIndex = 0;
+
+        dialoguePanel.SetActive(false);
         playerDialoguePanel.SetActive(true);
+        optionsContainer.gameObject.SetActive(false);
+
         playerNameText.text = "Você";
-        playerDialogueText.text = text;
+        playerDialogueText.text = lines[playerDialogueIndex];
+
+        UpdateNextButtons();
     }
+
     #endregion
+
+    private void ShowCurrentLine()
+    {
+        optionsContainer.gameObject.SetActive(false);
+
+        // Se estamos em diálogo linear
+        if (mode == DialogueMode.Linear)
+        {
+            var line = activeLinearLines[currentIndex];
+
+            if (line.speaker == SpeakerType.NPC)
+            {
+                dialoguePanel.SetActive(true);
+                playerDialoguePanel.SetActive(false);
+
+                dialogueText.text = line.text;
+                nameText.text = currentNPC.npcName;
+
+                waitingForPlayerDialogue = false;
+            }
+            else // SpeakerType.Player
+            {
+                dialoguePanel.SetActive(false);
+                playerDialoguePanel.SetActive(true);
+
+                playerDialogueText.text = line.text;
+                playerNameText.text = "Você";
+
+                waitingForPlayerDialogue = true;
+            }
+
+            UpdateNextButtons();
+            return;
+        }
+
+        // --- DIÁLOGO NORMAL OU INTERATIVO ---
+        dialoguePanel.SetActive(true);
+        playerDialoguePanel.SetActive(false);
+
+        dialogueText.text = activeLines[currentIndex];
+
+        UpdateNextButtons();
+    }
+
+    private void SetupDialogueUI()
+    {
+        dialoguePanel.SetActive(true);
+        playerDialoguePanel.SetActive(false);
+        optionsContainer.gameObject.SetActive(false);
+
+        nameText.text = currentNPC.npcName;
+
+        Player.Instance?.SetMovementBlocked(true);
+        Player.Instance?.SetAttackBlocked(true);
+        InventoryManager.Instance?.PlayerHud(false);
+        cameraScript?.HandleInventoryToggled(true);
+
+        DialogueUIManager.IsDialogueOpen = true;
+    }
 
     #region Conditions
     private bool ConditionsMet(DialogueCondition[] conditions)
@@ -259,6 +423,7 @@ public class DialogueUI : MonoBehaviour
     {
         dialoguePanel.SetActive(false);
         playerDialoguePanel.SetActive(false);
+        optionsContainer.gameObject.SetActive(false);
 
         Player.Instance?.SetMovementBlocked(false);
         Player.Instance?.SetAttackBlocked(false);
@@ -270,7 +435,6 @@ public class DialogueUI : MonoBehaviour
         currentOptions = null;
         selectedPlayerOption = null;
         currentNPC = null;
-        npcLines = null;
         npcEmojis = null;
         currentLine = -1;
         waitingForPlayerDialogue = false;

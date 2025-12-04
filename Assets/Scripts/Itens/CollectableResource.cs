@@ -109,6 +109,9 @@ public class CollectableResource : CollectableObject
             if (added)
             {
                 Debug.Log($"{resourceData.resourceName} coletado e adicionado ao inventário!");
+                QuestCollectable qc = GetComponent<QuestCollectable>();
+                if (qc != null)
+                    qc.OnCollected(resourceData);
             }
             else
             {

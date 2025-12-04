@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static QuestStep;
 
 public class QuestSystem : MonoBehaviour, ISOSavable
 {
 
     public static QuestSystem Instance;
 
+    public List<QuestData> allQuestData = new List<QuestData>();
     public enum QuestState
     {
         NotStarted,
@@ -35,32 +37,38 @@ public class QuestSystem : MonoBehaviour, ISOSavable
         public string questName;
         public int rewardGold;
         public QuestState state;
-        public NPC questGiver;
 
-        // --- Variable Effects (RPG Maker Style) ---
+        public int currentStepIndex = 0;
+
+        // Esses são NECESSÁRIOS porque o Quest runtime usa eles
         public string startVariableName;
         public int startVariableValue;
-
         public string completeVariableName;
         public int completeVariableValue;
 
-        // --- Requirements ---
+        // Pré-requisito
         public string requirementVariable;
-        public string requirementOperator = "=";
+        public string requirementOperator;
         public int requirementValue;
+
+        // Referência de quem deu a quest
+        public NPC questGiver;
+
+        public QuestData data => QuestSystem.Instance.allQuestData
+            .Find(q => q.questName == questName);
 
         public Quest(string name, int reward, NPC giver)
         {
             questName = name;
             rewardGold = reward;
-            questGiver = giver;
             state = QuestState.NotStarted;
+            questGiver = giver;
         }
     }
 
     public Dictionary<string, Quest> activeQuests = new Dictionary<string, Quest>();
     public Dictionary<string, Quest> completedQuests = new Dictionary<string, Quest>();
-
+    private Dictionary<string, int> bufferedProgress = new Dictionary<string, int>();
 
     // ----------------------------------------------------------
     // Add Quest (Now checks variable requirement)
@@ -73,7 +81,7 @@ public class QuestSystem : MonoBehaviour, ISOSavable
             return;
         }
 
-        // Requisito
+        // Pré-requisito simples (opcional, você decide manter ou migrar para step)
         if (!string.IsNullOrEmpty(data.requirementVariable))
         {
             if (!GlobalVariableSystem.Instance.Compare(
@@ -86,23 +94,137 @@ public class QuestSystem : MonoBehaviour, ISOSavable
             }
         }
 
-        // Cria quest runtime
-        Quest newQuest = new Quest(data.questName, data.rewardGold, giver)
-        {
-            startVariableName = data.startVariableName,
-            startVariableValue = data.startVariableValue,
-            completeVariableName = data.completeVariableName,
-            completeVariableValue = data.completeVariableValue
-        };
-
+        Quest newQuest = new Quest(data.questName, data.rewardGold, giver);
         newQuest.state = QuestState.InProgress;
         activeQuests.Add(data.questName, newQuest);
 
-        if (!string.IsNullOrEmpty(newQuest.startVariableName))
-            GlobalVariableSystem.Instance.SetValue(newQuest.startVariableName, newQuest.startVariableValue);
-
         Debug.Log($"Quest iniciada: {data.questName}");
-        DebugGlobalVariables();
+
+        // Aplicar progresso retroativo se existir
+        QuestStep firstStep = data.steps[0];
+
+        if (data.steps == null || data.steps.Count == 0)
+        {
+            Debug.LogError($"Quest '{data.questName}' não tem nenhum Step configurado!");
+            return;
+        }
+        if (bufferedProgress.ContainsKey(firstStep.targetID))
+        {
+            ApplyStepProgress(newQuest, firstStep, bufferedProgress[firstStep.targetID]);
+            bufferedProgress.Remove(firstStep.targetID);
+        }
+    }
+
+    public void RegisterProgress(string targetID, int amount)
+{
+    // Faz uma cópia da lista de quests ativas
+    foreach (var quest in activeQuests.Values.ToList())
+    {
+        QuestStep step = quest.data.steps[quest.currentStepIndex];
+
+        if (step.targetID != targetID) continue;
+
+        // Buffer retroativo
+        if (quest.state != QuestState.InProgress)
+        {
+            if (step.countProgressBeforeStart)
+            {
+                if (!bufferedProgress.ContainsKey(targetID))
+                    bufferedProgress[targetID] = 0;
+
+                bufferedProgress[targetID] += amount;
+            }
+            continue;
+        }
+
+        ApplyStepProgress(quest, step, amount);
+    }
+}
+
+    private void ApplyStepProgress(Quest quest, QuestStep step, int amount)
+    {
+        string varName = $"{quest.questName}_{step.stepName}_progress";
+
+        int current = GlobalVariableSystem.Instance.GetValue(varName);
+        GlobalVariableSystem.Instance.SetValue(varName, current + amount);
+
+        if (current + amount >= step.requiredAmount)
+        {
+            CompleteStep(quest, step);
+        }
+    }
+
+    private void CompleteStep(Quest quest, QuestStep step)
+    {
+        Debug.Log($"Step Concluído: {step.stepName}");
+
+        // dispara variável pós step
+        if (!string.IsNullOrEmpty(step.completeVariableName))
+            GlobalVariableSystem.Instance.SetValue(step.completeVariableName, step.completeVariableValue);
+
+        // -------------- BRANCHES --------------
+        if (step.nextBranches != null && step.nextBranches.Count > 0)
+        {
+            foreach (var branch in step.nextBranches)
+            {
+                if (IsBranchConditionMet(branch))
+                {
+                    quest.currentStepIndex = quest.data.steps.FindIndex(s => s.stepID == branch.nextStepID);
+                    return;
+                }
+            }
+        }
+
+        // Se não disparou branch  vai normal
+        quest.currentStepIndex++;
+
+        if (quest.currentStepIndex >= quest.data.steps.Count)
+        {
+            CompleteQuest(quest.questName);
+        }
+    }
+
+    private bool IsBranchConditionMet(BranchCondition b)
+    {
+        switch (b.branchType)
+        {
+            case BranchCondition.BranchType.VariableCheck:
+                return GlobalVariableSystem.Instance.Compare(b.variableName, b.comparison, b.value);
+
+            case BranchCondition.BranchType.DialogueChoice:
+                if (string.IsNullOrEmpty(b.dialogueChoiceID)) return false;
+                return GlobalVariableSystem.Instance.GetValue(b.dialogueChoiceID) == 1;
+
+            case BranchCondition.BranchType.EventTrigger:
+                return GlobalVariableSystem.Instance.GetValue(b.eventID) == 1;
+
+            default:
+                return false;
+        }
+    }
+
+    public void CheckQuestProgress(string variableName, int newValue)
+    {
+        foreach (var quest in activeQuests.Values.ToList()) // .ToList() para não modificar o dicionário durante iteração
+        {
+            // Se a quest usa essa variável como requisito
+            if (!string.IsNullOrEmpty(quest.requirementVariable) && quest.requirementVariable == variableName)
+            {
+                // Usa o sistema de comparação que você já tem
+                if (GlobalVariableSystem.Instance.Compare(variableName, quest.requirementOperator, quest.requirementValue))
+                {
+                    CompleteQuest(quest.questName);
+                }
+            }
+
+
+            if (quest != null)
+            {
+                Debug.Log($"Quest {quest.questName}, Step atual: {quest.currentStepIndex}");
+            }
+
+        }
+        
     }
 
     public void DebugGlobalVariables()
@@ -141,7 +263,7 @@ public class QuestSystem : MonoBehaviour, ISOSavable
         Debug.Log($"Quest concluída: {name}");
     }
 
-
+    
     // Query helpers
     public bool HasQuest(string name) => activeQuests.ContainsKey(name);
     public bool IsCompleted(string name) => completedQuests.ContainsKey(name);
@@ -168,11 +290,8 @@ public class QuestSystem : MonoBehaviour, ISOSavable
             questName = q.questName,
             rewardGold = q.rewardGold,
             state = q.state.ToString(),
-            questGiverName = q.questGiver != null ? q.questGiver.npcName : "",
-            startVariableName = q.startVariableName,
-            startVariableValue = q.startVariableValue,
-            completeVariableName = q.completeVariableName,
-            completeVariableValue = q.completeVariableValue
+            currentStepIndex = q.currentStepIndex,
+            questGiverName = q.questGiver != null ? q.questGiver.npcName : ""
         };
     }
 
@@ -188,11 +307,8 @@ public class QuestSystem : MonoBehaviour, ISOSavable
         public string questName;
         public int rewardGold;
         public string state;
+        public int currentStepIndex;
         public string questGiverName;
-        public string startVariableName;
-        public int startVariableValue;
-        public string completeVariableName;
-        public int completeVariableValue;
     }
 
     public string GetSaveKey() => "QuestSystem";
@@ -223,10 +339,7 @@ public class QuestSystem : MonoBehaviour, ISOSavable
             var q = new Quest(qData.questName, qData.rewardGold, npc)
             {
                 state = (QuestState)System.Enum.Parse(typeof(QuestState), qData.state),
-                startVariableName = qData.startVariableName,
-                startVariableValue = qData.startVariableValue,
-                completeVariableName = qData.completeVariableName,
-                completeVariableValue = qData.completeVariableValue
+                currentStepIndex = qData.currentStepIndex
             };
             if (q.state == QuestState.InProgress) activeQuests.Add(q.questName, q);
             else if (q.state == QuestState.Completed) completedQuests.Add(q.questName, q);

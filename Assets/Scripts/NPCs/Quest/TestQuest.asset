@@ -12,12 +12,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d96c4594e8bdd81458a04a2143b3e7b7, type: 3}
   m_Name: TestQuest
   m_EditorClassIdentifier: Assembly-CSharp::QuestData
-  questName: TestQuest
-  rewardGold: 100
-  startVariableName: TestVarStart
-  startVariableValue: 1
-  completeVariableName: TestVarComplete
-  completeVariableValue: 10
+  questName: Coleta
+  rewardGold: 50
   requirementVariable: 
   requirementOperator: =
   requirementValue: 0
+  steps:
+  - stepID: Step_1
+    stepName: Recolher Galhos
+    targetID: GalhosColetadosCount
+    requiredAmount: 5
+    countProgressBeforeStart: 0
+    completeVariableName: GalhosColetados
+    completeVariableValue: 1
+    deliverItems:
+    - delvItem: {fileID: 11400000, guid: 6cda92a0877e25244987e517be14bf12, type: 2}
+      amount: 5
+      targetVariable: GalhosColetadosCount
+    nextBranches:
+    - branchType: 0
+      targetStepID: 
+      variableName: 
+      comparison: 
+      value: 0
+      dialogueChoiceID: 
+      eventID: 
+      nextStepID: Step_2
+  - stepID: Step_2
+    stepName: Entregar Recursos
+    targetID: GalhosEntreguesCount
+    requiredAmount: 1
+    countProgressBeforeStart: 0
+    completeVariableName: Quest_GalhosCompleta
+    completeVariableValue: 1
+    deliverItems: []
+    nextBranches: []

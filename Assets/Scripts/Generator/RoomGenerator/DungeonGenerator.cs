@@ -223,7 +223,7 @@ public class DungeonGenerator : MonoBehaviour
                 // Se houver diferentes tipos de NPCs, define agentTypeID aqui
                 agent.agentTypeID = humanAgentID; // ou outro tipo, se precisar
 
-                npc.InitializeAfterNavmesh();
+                //npc.InitializeAfterNavmesh();
             }
 
             // Inicializa inimigos

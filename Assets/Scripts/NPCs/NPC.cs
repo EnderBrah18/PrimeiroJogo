@@ -8,6 +8,12 @@ using UnityEngine.UI;
 using static NPC;
 using static QuestSystem;
 using static ReputationSystem;
+using System.Linq;
+using static QuestStep;
+using Unity.VisualScripting;
+
+
+
 
 
 
@@ -27,12 +33,14 @@ public enum NPCType
 
 public enum NPCRoutine
 {
+    None,
     Idle,
     Patrol,
     Sit,
     Sleep,
     Work,
-    TalkToOtherNPC
+    TalkToOtherNPC,
+    WakeUp
 }
 
 public enum ValueComparison
@@ -76,7 +84,7 @@ public class NPC : InteractableBase, ISavable
 
     [Header("Social Anger Settings")]
     public bool isSociallyAngry = false;   // controla se o NPC bloqueia loja/diálogo
-    public float socialAngerDuration = 15f; // tempo que ele permanece bravo socialmente após se acalmar
+    public float socialAngerDuration = 666f; // tempo que ele permanece bravo socialmente após se acalmar
     private Coroutine _socialAngerCoroutine;
 
     public bool canCalmWhileDetecting = true; // para guardas, false
@@ -86,16 +94,10 @@ public class NPC : InteractableBase, ISavable
     [Header("Dialogue Settings")]
     public DialogueLine[] linearDialogue;
 
-    [Header("Player Insert Lines (opcional)")]
-    [TextArea(2, 5)]
-    public string[] playerLines;
-
     [Header("Dialogue Progression")]
     public int interactionCount = 0;
     public DialogueSet[] dialogueStages;
 
-    [Header("Dialogue Type")]
-    public bool interactiveDialogue = false; // true = opções de player, false = diálogo linear
 
     [Header("Reactions (World Canvas)")]
     public Canvas emojiCanvas;
@@ -116,36 +118,30 @@ public class NPC : InteractableBase, ISavable
 
     private bool isInteracting = false;
 
-    [Header("Routine Points")]
-    public Transform workPoint;
-    public Transform sleepPoint;
-    public Transform idlePoint;
+    [Header("Daily Schedule")]
+    public NPCSchedule schedule;
+    public float currentHour;  // puxado do sistema de tempo global
+    private NPCRoutine routineBeforeHostile;
 
     [Header("Movement Settings")]
     public bool patrol = false;
-    public Transform[] patrolPoints;
     public float moveSpeed = 2f;
-    private int currentPatrolIndex = 0;
 
     [Header("NavMesh Settings")]
-    public NavMeshAgent agent;
     private Vector3 originalPosition;
+    //public NavMeshAgent agent;
+    
 
     [Header("Quest Settings")]
     public List<QuestData> questDataList;
-    public string questID;
-    public string questName;
-    public string questDescription;
-    public QuestState questState;
-    public int rewardGold;
 
     [Header("Follower / Escaper Settings")]
-    public Transform targetPlayer;
     public float followDistance = 2f;
     public float escapeDistance = 3f;
 
     [Header("Reactions to Player")]
     public bool reactsToPlayer = true;
+    private Quaternion lookAwayRotation;
     public float lookRange = 5f;
     public float lookSpeed = 2f;
 
@@ -156,6 +152,26 @@ public class NPC : InteractableBase, ISavable
     private Enemy enemyBehaviour;
     [Header("Configurações de Combate")]
     public bool isInvincible = false;
+
+    [Header("Behavior: position & respawn")]
+    public bool returnToPositionOnCalm = false;   // se true: volta à posição salva quando virou hostil
+    private Vector3 positionWhenBecameHostile = Vector3.zero;
+    private Vector3 originalSpawnPosition = Vector3.zero; // posição inicial para respawn
+
+    [Header("Regeneration (friendly)")]
+    public bool enableRegenWhenFriendly = true;
+    public float regenAmountPerTick = 1f;
+    public float regenTickInterval = 1f; // segundos entre ticks
+    public float regenDelayAfterCombat = 3f; // espera após acalmar/ser atacado antes de regen (opcional)
+    private Coroutine _regenCoroutine;
+
+    [Header("Death & Respawn")]
+    public bool canRespawn = false;
+    public float respawnDelay = 30f;
+    [SerializeField] private GameObject visualModel;
+
+    private bool isDead = false;
+    private bool socialAngerPaused = false;
 
 
     // Adições / alterações dentro da classe NPC:
@@ -186,7 +202,7 @@ public class NPC : InteractableBase, ISavable
     private void Start()
     {
         SaveSystem.Instance.RegisterSavable(this);
-        if (agent == null)
+        /*if (agent == null)
             agent = GetComponent<NavMeshAgent>();
 
         NavMeshHit hit;
@@ -198,9 +214,10 @@ public class NPC : InteractableBase, ISavable
         else
         {
             Debug.LogWarning("NPC não consegui encontrar posição válida na NavMesh!");
-        }
+        }*/
 
-        agent.speed = moveSpeed;
+        originalSpawnPosition = transform.position;
+        //agent.speed = moveSpeed;
 
         // Inicializa vida do NPC (não sobrescreve se já definido)
         if (maxHealth <= 0) maxHealth = 100;
@@ -222,17 +239,19 @@ public class NPC : InteractableBase, ISavable
         // Inscrever-se no sistema de reputação (se existir e tiver id)
         if (ReputationSystem.Instance == null) return;
 
+        
+
         // Registrar reputação da FACÇÃO
-        if (!string.IsNullOrEmpty(factionId))
+        /*if (!string.IsNullOrEmpty(factionId))
             ReputationSystem.Instance.Subscribe(factionId, OnReputationChanged);
 
         if (!string.IsNullOrEmpty(characterId))
             ReputationSystem.Instance.Subscribe(characterId, OnReputationChanged);
 
-        OnReputationChanged(0);
+        OnReputationChanged(0);*/
     }
 
-    private void OnDestroy()
+    /*private void OnDestroy()
     {
         if (ReputationSystem.Instance == null) return;
 
@@ -241,18 +260,29 @@ public class NPC : InteractableBase, ISavable
 
         if (!string.IsNullOrEmpty(characterId))
             ReputationSystem.Instance.Unsubscribe(characterId, OnReputationChanged);
-    }
-
+    }*/
+    public float speed = 2f;
     private void Update()
     {
+        if (!isDead)
+            currentHour = TimeSystem.Instance.GetHour();
+        currentRoutine = GetRoutineForTime(currentHour);
+
+        UpdateRoutineFromTime();
         HandleRoutine();
         HandleSpecialBehavior();
+        //LookBack();
+    }
+
+    private Transform GetPlayer()
+    {
+        return GameObject.FindWithTag("Player")?.transform;
     }
 
     #region NPC BUILD
-    public void InitializeAfterNavmesh()
+    /*public void InitializeAfterNavmesh()
     {
-        if (agent == null)
+        /if (agent == null)
             agent = GetComponent<NavMeshAgent>();
 
         if (agent == null)
@@ -275,46 +305,264 @@ public class NPC : InteractableBase, ISavable
             originalPosition = transform.position;
             Debug.LogWarning($"{npcName}: NÃO encontrou posição no NavMesh após build!");
         }
-    }
+    }*/
+    #region Routine
 
-    #region Routine Logic
+    [Header("Movement Settings")]
+    public float maxSpeed = 2f;
+    public float rotationSpeed = 5f;
+    public float waypointThreshold = 0.2f;
+    public float avoidanceRadius = 1f;
+    public LayerMask npcLayer;
+
+    [Header("Routine Points")]
+    public Transform workPoint;
+    public Transform sleepPoint;
+    public Transform patrolPoint;
+
+    private Transform currentTarget;
+    private bool routineInProgress = false;
+
+    // Rotina principal
     void HandleRoutine()
     {
+        if (isDead || isHostile) return;
+        if (routineInProgress) return;
+
+        routineInProgress = true;
+
         switch (currentRoutine)
         {
             case NPCRoutine.Sleep:
-                agent.enabled = false;
+                StartCoroutine(TransitionToSleep());
                 break;
-
             case NPCRoutine.Work:
-                agent.enabled = true;
-                agent.SetDestination(workPoint.position);
+                StartCoroutine(TransitionToWork());
                 break;
-
             case NPCRoutine.Patrol:
-                HandlePatrol();
+                StartCoroutine(TransitionToPatrol());
+                break;
+            case NPCRoutine.Idle:
+                StartCoroutine(TransitionToIdle());
+                break;
+            case NPCRoutine.WakeUp:
+                StartCoroutine(TransitionToWakeUp());
+                break;
+            default:
+                routineInProgress = false;
                 break;
         }
     }
+
     #endregion
 
-    #region Movement
-    private void HandlePatrol()
+    #region Movement Helper
+
+    private void MoveToWaypoint(Transform target)
     {
-        if (!patrol || patrolPoints.Length == 0 || isInteracting) return;
+        Vector3 dir = (target.position - transform.position);
+        float distance = dir.magnitude;
 
-        agent.SetDestination(patrolPoints[currentPatrolIndex].position);
+        if (distance > waypointThreshold)
+        {
+            dir.Normalize();
 
-        if (Vector3.Distance(transform.position, patrolPoints[currentPatrolIndex].position) < 0.2f)
-            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
+            // Steering local para evitar NPCs próximos
+            Collider[] nearby = Physics.OverlapSphere(transform.position, avoidanceRadius, npcLayer);
+            Vector3 avoidance = Vector3.zero;
+
+            foreach (var col in nearby)
+            {
+                if (col.gameObject == gameObject) continue;
+                Vector3 away = transform.position - col.transform.position;
+                if (away.magnitude > 0.01f) avoidance += away.normalized / away.magnitude;
+            }
+
+            if (avoidance.sqrMagnitude > 0.001f)
+            {
+                dir += avoidance.normalized * 0.5f; // pondera o desvio
+            }
+
+            dir = Vector3.ClampMagnitude(dir, 1f);
+
+            transform.position += dir * maxSpeed * Time.deltaTime;
+
+            // Rotação suave
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
+            }
+        }
+        else
+        {
+            transform.position = target.position; // garante chegada exata
+        }
     }
+
+    private Transform GetRoutineDestination()
+    {
+        return currentRoutine switch
+        {
+            NPCRoutine.Work => workPoint,
+            NPCRoutine.Sleep => sleepPoint,
+            NPCRoutine.Patrol => patrolPoint,
+            _ => null
+        };
+    }
+
+    private IEnumerator MoveToCurrentTarget()
+    {
+        if (currentTarget == null) yield break;
+
+        while (Vector3.Distance(transform.position, currentTarget.position) > waypointThreshold)
+        {
+            MoveToWaypoint(currentTarget);
+            yield return null;
+        }
+
+        transform.position = currentTarget.position;
+        Debug.Log($"Chegou ao destino: {currentTarget.name}");
+    }
+
+    #endregion
+
+    #region Routine Transitions
+
+    private IEnumerator TransitionToIdle()
+    {
+        routineInProgress = true;
+
+        // Pequeno “respirar” visual
+        transform.DOScale(new Vector3(1.02f, 1.02f, 1.02f), 0.5f)
+                 .SetLoops(-1, LoopType.Yoyo)
+                 .SetEase(Ease.InOutSine);
+
+        yield return null;
+        routineInProgress = false;
+    }
+
+    private IEnumerator TransitionToWakeUp()
+    {
+        routineInProgress = true;
+
+        transform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutQuad);
+        transform.DORotate(new Vector3(0, transform.eulerAngles.y, 0), 0.3f)
+                 .SetLoops(2, LoopType.Yoyo)
+                 .SetEase(Ease.InOutSine);
+
+        yield return new WaitForSeconds(0.6f);
+
+        routineInProgress = false;
+
+        NPCRoutine nextRoutine = GetRoutineForTime(currentHour);
+        if (nextRoutine != NPCRoutine.Sleep && nextRoutine != NPCRoutine.WakeUp)
+        {
+            currentRoutine = nextRoutine;
+            HandleRoutine();
+        }
+    }
+
+    private IEnumerator TransitionToWork()
+    {
+        routineInProgress = true;
+
+        currentTarget = workPoint;
+        yield return StartCoroutine(MoveToCurrentTarget());
+
+        // Pequena animação de trabalho
+        transform.DOShakePosition(1f, 0.1f, 10, 90, false, true);
+
+        routineInProgress = false;
+    }
+
+    private IEnumerator TransitionToSleep()
+    {
+        routineInProgress = true;
+
+        currentTarget = sleepPoint;
+        yield return StartCoroutine(MoveToCurrentTarget());
+
+        // "Deitar" visual
+        transform.DOScale(new Vector3(1f, 0.5f, 1f), 0.5f).SetEase(Ease.InOutQuad);
+
+        routineInProgress = false;
+    }
+
+    private IEnumerator TransitionToPatrol()
+    {
+        routineInProgress = true;
+
+        if (patrolPoint == null)
+        {
+            routineInProgress = false;
+            yield break;
+        }
+
+        currentTarget = patrolPoint;
+
+        // Loop de patrulha simples
+        while (currentRoutine == NPCRoutine.Patrol && !isDead && !isHostile)
+        {
+            yield return StartCoroutine(MoveToCurrentTarget());
+
+            // Idle visual entre patrulhas
+            transform.DOScale(new Vector3(1.05f, 1.05f, 1.05f), 0.2f).SetLoops(2, LoopType.Yoyo);
+            yield return new WaitForSeconds(0.3f);
+        }
+
+        routineInProgress = false;
+    }
+
+    #endregion
+
+    #region Routine Time Management
+
+    private void UpdateRoutineFromTime()
+    {
+        if (isHostile || isDead) return;
+
+        NPCRoutine correctRoutine = GetRoutineForTime(currentHour);
+
+        if (currentRoutine == NPCRoutine.Sleep && correctRoutine != NPCRoutine.Sleep)
+        {
+            currentRoutine = NPCRoutine.WakeUp;
+            HandleRoutine();
+            return;
+        }
+
+        if (correctRoutine != currentRoutine && currentRoutine != NPCRoutine.WakeUp)
+        {
+            currentRoutine = correctRoutine;
+            HandleRoutine();
+        }
+    }
+
+    private NPCRoutine GetRoutineForTime(float hour)
+    {
+        if (schedule == null || schedule.entries.Length == 0)
+            return currentRoutine;
+
+        RoutineEntry chosen = schedule.entries[0];
+        foreach (var r in schedule.entries)
+        {
+            if (hour >= r.startHour)
+                chosen = r;
+        }
+
+        return chosen.routine;
+    }
+
+    #endregion
+    #region Movement
+
 
     private void HandleSpecialBehavior()
     {
         switch (npcType)
         {
             case NPCType.Follower:
-                HandleFollow();
+                //HandleFollow();
                 break;
 
             case NPCType.Escaper:
@@ -323,64 +571,27 @@ public class NPC : InteractableBase, ISavable
         }
     }
 
-    public void HandlePlayerReaction(Quest quest)
+    /*private void HandleFollow()
     {
-        if (quest == null)
-        {
-            Debug.LogWarning($"{npcName} recebeu reação de player, mas quest é NULL.");
-            return;
-        }
+        Transform player = GetPlayer();
 
-        // Se a quest está completa
-        if (quest.state == QuestState.Completed)
-        {
-            Debug.Log($"{npcName} reage à conclusão da quest '{quest.questName}'!");
-
-            // Reações visuais
-            ShowEmoji(happyEmoji);
-            BounceEffect();
-
-            // Reações de fala (opcional)
-            if (speechCanvas && speechText)
-            {
-                speechText.text = "Muito obrigado pela ajuda!";
-                SpeakAmbient();
-            }
-
-            // Se quiser forçar um diálogo novo
-            interactionCount = 999; // desbloqueia diálogos avançados
-
-            return;
-        }
-
-        // Caso o jogador ainda esteja fazendo a quest
-        if (quest.state == QuestState.InProgress)
-        {
-            Debug.Log($"{npcName} comenta sobre a quest '{quest.questName}'.");
-
-            ShowEmoji(questionEmoji);
-            return;
-        }
-    }
-
-    private void HandleFollow()
-    {
-        float dist = Vector3.Distance(transform.position, targetPlayer.position);
+        float dist = Vector3.Distance(transform.position, player.position);
         if (dist > followDistance)
-            agent.SetDestination(targetPlayer.position);
+            agent.SetDestination(player.position);
         else
             agent.ResetPath();
-    }
+    }*/
 
     private void HandleEscape()
     {
-        float dist = Vector3.Distance(transform.position, targetPlayer.position);
+        Transform player = GetPlayer();
+
+        float dist = Vector3.Distance(transform.position, player.position);
 
         if (dist < escapeDistance)
         {
-            Vector3 dir = (transform.position - targetPlayer.position).normalized;
+            Vector3 dir = (transform.position - player.position).normalized;
             Vector3 escapePoint = transform.position + dir * escapeDistance;
-            agent.SetDestination(escapePoint);
         }
     }
     #endregion
@@ -430,7 +641,9 @@ public class NPC : InteractableBase, ISavable
 
     public void Talk()
     {
+        Debug.Log("Chamando Talk() no NPC: " + npcName);
         DialogueSet selectedStage = null;
+        LookAtPlayer();
 
         // Escolhe o stage que atende as condições
         foreach (var stage in dialogueStages)
@@ -444,6 +657,7 @@ public class NPC : InteractableBase, ISavable
 
         if (selectedStage != null)
         {
+            Debug.Log("Selecionou DialogueSet: " + selectedStage);
             // Se tiver opções do player, mostra menu interativo
             if (selectedStage.playerOptions != null && selectedStage.playerOptions.Length > 0)
             {
@@ -552,14 +766,25 @@ public class NPC : InteractableBase, ISavable
 
     void LookAtPlayer()
     {
-        Transform player = targetPlayer ?? GameObject.FindWithTag("Player")?.transform;
+        Transform player = GetPlayer();
         if (player == null) return;
 
         Vector3 dir = (player.position - transform.position).normalized;
         dir.y = 0;
 
         transform.DORotateQuaternion(Quaternion.LookRotation(dir), 0.4f);
+
+        lookAwayRotation = transform.rotation;
     }
+
+    void LookBack()
+    {
+        if (isInteracting) return;
+
+        // Retorna à última direção “olhando para frente” antes da interação
+        transform.DORotateQuaternion(lookAwayRotation, 0.4f);
+    }
+
     #endregion
 
     #region Emoji / World Canvas
@@ -682,6 +907,46 @@ public class NPC : InteractableBase, ISavable
         Debug.Log($"{npcName} não tem novas quests para oferecer.");
     }
 
+
+    public void DeliverQuest()
+    {
+        // Pega a quest ativa deste NPC
+        foreach (var questData in questDataList)
+        {
+            PlayerInventory playerInventory = FindFirstObjectByType<PlayerInventory>();
+            Inventory inventory = playerInventory.inventory;
+
+            var quest = QuestSystem.Instance.GetActiveQuest(questData.questName);
+            if (quest == null) continue; // só pros ativos
+
+            // Gera a lista de itens que precisam ser entregues neste step
+            var step = questData.steps[quest.currentStepIndex];
+            if (step.deliverItems == null || step.deliverItems.Count == 0) continue;
+
+            // Chama a função que vai remover do inventário e atualizar progresso
+            DeliverQuestItems(inventory, step.deliverItems);
+        }
+    }
+
+    private void DeliverQuestItems(Inventory inventory, List<DeliverableItem> items)
+    {
+        foreach (var item in items)
+        {
+            if (item.delvItem == null) continue;
+
+            bool removed = inventory.RemoveItem(item.delvItem, item.amount);
+
+            if (removed && !string.IsNullOrEmpty(item.targetVariable))
+            {
+                int current = GlobalVariableSystem.Instance.GetValue(item.targetVariable);
+                GlobalVariableSystem.Instance.SetValue(item.targetVariable, current + item.amount);
+
+                QuestSystem.Instance.CheckQuestProgress(item.targetVariable, current + item.amount);
+            }
+        }
+    }
+
+
     public void ReactToCompletedQuest(QuestSystem.Quest quest)
     {
         ShowEmoji(happyEmoji);
@@ -752,8 +1017,14 @@ public class NPC : InteractableBase, ISavable
         public DialogueSet[] nextDialogue;         // Próximo stage/branch
         public UnityEngine.Events.UnityEvent onSelect; // Métodos do NPC a chamar (OpenShop, GiveNextQuest)
         public bool endsConversation = false;
+        public bool returnToThisDialogue = false;
 
         public DialogueCondition[] conditions;// Fecha diálogo se true
+
+        // NOVO: ID para conectar com Quest e GlobalVariableSystem
+        public string targetID;
+        public bool sendToQuestSystem = false;
+        public int progressAmount = 1;
     }
 
     [System.Serializable]
@@ -765,12 +1036,12 @@ public class NPC : InteractableBase, ISavable
 
     #endregion
 
-    private string _previousTag = null;
-
-
+    #region NAVMESH
+    /*
     public void BecomeHostile(float delay = 0f)
     {
         if (isHostile) return;
+        routineBeforeHostile = currentRoutine;
         StartCoroutine(BecomeHostileRoutine(delay));
     }
 
@@ -824,6 +1095,7 @@ public class NPC : InteractableBase, ISavable
         enemyBehaviour.currentHealth = Mathf.Clamp(currentHealth, 0, enemyBehaviour.maxHealth);
 
         enemyBehaviour.moveSpeed = moveSpeed;
+        positionWhenBecameHostile = transform.position;
 
         // Ativar NavMeshAgent
         if (agent == null)
@@ -831,9 +1103,6 @@ public class NPC : InteractableBase, ISavable
         if (agent != null)
             agent.enabled = true;
 
-        // Trocar tag
-        _previousTag = gameObject.tag;
-        gameObject.tag = "Enemy";
     }
 
     // Recebe dano direcionado ao NPC. Se atacado, fica hostil e encaminha o dano ao Enemy.
@@ -879,6 +1148,7 @@ public class NPC : InteractableBase, ISavable
         // Se não for hostil ainda, torna hostil imediatamente (vai ativar Enemy)
         if (!isHostile)
         {
+            StopRegeneration();
             BecomeHostile(0f); // sem delay, ou passe um pequeno delay se quiser
         }
 
@@ -906,9 +1176,8 @@ public class NPC : InteractableBase, ISavable
             currentHealth = Mathf.Max(0, currentHealth);
             if (currentHealth <= 0)
             {
-                // comportamento simples: passa a "morto" — aqui apenas destrói o objeto
                 Debug.Log($"{npcName} (NPC) morreu.");
-                Destroy(gameObject);
+                HandleDeath();
                 return;
             }
         }
@@ -937,11 +1206,13 @@ public class NPC : InteractableBase, ISavable
             {
                 if (canCalmWhileDetecting)
                     elapsed += Time.deltaTime * calmSpeedWhilePlayerNearby;
+                Debug.Log($"Player detectado, calmando devagar. Elapsed: {elapsed:F2}");
                 // caso contrário, não aumenta elapsed
             }
             else
             {
                 elapsed += Time.deltaTime * calmSpeedWhenPlayerAway; // acelera calm down
+                Debug.Log($"Player ausente, calmando rápido. Elapsed: {elapsed:F2}");
             }
 
             yield return null;
@@ -953,15 +1224,50 @@ public class NPC : InteractableBase, ISavable
 
     private IEnumerator SocialAngerTimer()
     {
-        yield return new WaitForSeconds(socialAngerDuration);
+        float elapsed = 0f;
+
+        while (elapsed < socialAngerDuration)
+        {
+            // SE MORREU pausa e espera até ressuscitar
+            if (isDead || socialAngerPaused)
+            {
+                yield return null;
+                continue;
+            }
+
+            float delta = 0f;
+
+            if (reactsToPlayer && IsPlayerInRange())
+            {
+                delta = canCalmWhileDetecting ? Time.deltaTime * calmSpeedWhilePlayerNearby : 0f;
+                Debug.Log($"Player detectado, calmando devagar. Elapsed: {elapsed:F2}");
+            }
+            else
+            {
+                delta = Time.deltaTime * calmSpeedWhenPlayerAway;
+                Debug.Log($"Player ausente, calmando rápido. Elapsed: {elapsed:F2}");
+            }
+
+            elapsed += delta;
+
+            yield return null;
+        }
+
         isSociallyAngry = false;
         _socialAngerCoroutine = null;
     }
 
     private bool IsPlayerInRange()
     {
-        if (targetPlayer == null) return false;
-        float dist = Vector3.Distance(transform.position, targetPlayer.position);
+        Transform player = GetPlayer();
+        if (player == null)
+        {
+            Debug.LogWarning("Player não encontrado na cena!");
+            return false;
+        }
+
+        float dist = Vector3.Distance(transform.position, player.position);
+        Debug.Log($"Distância até player: {dist:F2} | LookRange: {lookRange}");
         return dist <= lookRange;
     }
 
@@ -1006,29 +1312,63 @@ public class NPC : InteractableBase, ISavable
             agent.speed = moveSpeed;
         }
 
-        // Volta para a posição original registrada (se houver)
-        if (originalPosition.sqrMagnitude > 0.01f && agent != null && agent.isOnNavMesh)
+        // Move o NPC de volta para a posição salva quando virou hostil, se configurado
+        if (returnToPositionOnCalm)
         {
-            agent.Warp(originalPosition);
+            // volta para a posição que estava quando virou hostil
+            if (agent != null && agent.isOnNavMesh)
+                agent.Warp(positionWhenBecameHostile);
+            else
+                transform.position = positionWhenBecameHostile;
         }
-        else if (originalPosition.sqrMagnitude > 0.01f)
+        else
         {
-            transform.position = originalPosition;
+            // fica onde está (não fazer nada)
         }
 
         // Restaura rotina (ex.: voltar a patrulhar)
-        currentPatrolIndex = Mathf.Clamp(currentPatrolIndex, 0, (patrolPoints != null && patrolPoints.Length > 0) ? patrolPoints.Length - 1 : 0);
+        //currentPatrolIndex = Mathf.Clamp(currentPatrolIndex, 0, (patrolPoints != null && patrolPoints.Length > 0) ? patrolPoints.Length - 1 : 0);
         // garante que o NPC comece a seguir sua rotina novamente
+        currentRoutine = GetRoutineForTime(currentHour);
         HandleRoutine();
+        StartRegeneration(regenDelayAfterCombat);
 
-        // Restaura tag anterior, se houver
-        if (!string.IsNullOrEmpty(_previousTag))
-        {
-            try { gameObject.tag = _previousTag; } catch { /* ignora se inválida */ }
-            _previousTag = null;
-        }
 
         Debug.Log($"{npcName} voltou a ser NPC amigável e retornou à rotina.");
+    }
+
+    private void StartRegeneration(float delay = 0f)
+    {
+        if (!enableRegenWhenFriendly || _regenCoroutine != null) return;
+        _regenCoroutine = StartCoroutine(RegenCoroutine(delay));
+    }
+
+    private void StopRegeneration()
+    {
+        if (_regenCoroutine != null)
+        {
+            StopCoroutine(_regenCoroutine);
+            _regenCoroutine = null;
+        }
+    }
+
+    private IEnumerator RegenCoroutine(float initialDelay)
+    {
+        if (initialDelay > 0f)
+            yield return new WaitForSeconds(initialDelay);
+
+        while (!isHostile && currentHealth > 0)
+        {
+            // Se estiver com Enemy ativo, atualize lá também
+            currentHealth = Mathf.Min(maxHealth, currentHealth + (int)regenAmountPerTick);
+
+            if (enemyBehaviour != null)
+                enemyBehaviour.currentHealth = Mathf.RoundToInt(Mathf.Clamp(enemyBehaviour.currentHealth + regenAmountPerTick, 0, enemyBehaviour.maxHealth));
+
+            yield return new WaitForSeconds(regenTickInterval);
+        }
+
+        _regenCoroutine = null;
     }
 
     private void OnReputationChanged(int _)
@@ -1069,6 +1409,102 @@ public class NPC : InteractableBase, ISavable
         // entre thresholds -> estado neutro (não força mudança)
     }
 
+    private void HandleDeath()
+    {
+        BecomeFriendly();
+        isDead = true;
+        socialAngerPaused = true;
+
+        // ex.: tocar animação, desativar interações, etc.
+        isHostile = false;
+        isInteracting = false;
+
+        // desativa componentes úteis
+        if (enemyBehaviour != null) enemyBehaviour.enabled = false;
+        foreach (var interactable in GetComponents<InteractableBase>())
+            if (interactable) interactable.enabled = false;
+
+        // esconder UI se estiver aberto
+        if (DialogueUI.Instance != null && DialogueUI.DialogueUIManager.IsDialogueOpen)
+        {
+            DialogueUI.Instance.CloseDialogueUI();
+        }
+
+        // caso respawn
+        if (canRespawn)
+        {
+            visualModel.SetActive(false);
+            StartCoroutine(RespawnCoroutine()); 
+        }
+        else
+        {
+            // morte permanente: destrói ou desativa para sempre
+            Destroy(gameObject); // ou SetActive(false) e salvar estado
+        }
+    }
+
+    private IEnumerator RespawnCoroutine()
+    {
+        yield return new WaitForSeconds(respawnDelay);
+
+        // recriar / reativar o NPC no spawn position
+        // Simples: reativar o gameobject e resetar stats
+        visualModel.SetActive(true);
+
+        // resetar vida
+        currentHealth = maxHealth;
+
+
+        // resetar flags
+        isHostile = false;
+        isInteracting = false;
+        isSociallyAngry = false;
+        isDead = false;
+        socialAngerPaused = false;
+
+        // Se ainda estava bravo socialmente, retoma o timer
+        if (isSociallyAngry && _socialAngerCoroutine == null)
+            _socialAngerCoroutine = StartCoroutine(SocialAngerTimer());
+
+        // reposicionar no spawn original (ou numa posição designada)
+        if (agent == null) agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.Warp(originalSpawnPosition);
+            agent.ResetPath();
+        }
+        else
+        {
+            transform.position = originalSpawnPosition;
+        }
+
+        // reativar componentes
+        foreach (var interactable in GetComponents<InteractableBase>())
+            if (interactable) interactable.enabled = true;
+
+        // reset Enemy component if existia
+        if (enemyBehaviour == null) enemyBehaviour = GetComponent<Enemy>();
+        if (enemyBehaviour != null)
+        {
+            enemyBehaviour.enabled = false;
+            enemyBehaviour.currentHealth = enemyBehaviour.maxHealth;
+        }
+
+        // delay curto antes de voltar ao comportamento normal
+        yield return null;
+
+        // opcional: reiniciar rotina do NPC
+        currentRoutine = GetRoutineForTime(currentHour);
+        HandleRoutine();
+    }
+
+    public void OnEnemyDied()
+    {
+        HandleDeath();
+    }
+    */
+    #endregion
+
     public string GetSaveKey() => $"NPC_{npcName}";
 
     public string SaveData()
@@ -1079,7 +1515,6 @@ public class NPC : InteractableBase, ISavable
             position = transform.position,
             interactionCount = interactionCount,
             currentRoutine = currentRoutine.ToString(),
-            hasQuest = questID != null,
             maxHealth = maxHealth,
             currentHealth = currentHealth
         };
@@ -1098,7 +1533,7 @@ public class NPC : InteractableBase, ISavable
         if (data.currentHealth > 0) currentHealth = data.currentHealth;
     }
 
-#if UNITY_EDITOR
+/*#if UNITY_EDITOR
     [CustomEditor(typeof(NPC))]
     public class NPCEditor : Editor
     {
@@ -1119,6 +1554,6 @@ public class NPC : InteractableBase, ISavable
             }
         }
     }
-#endif
+#endif*/
 
 }

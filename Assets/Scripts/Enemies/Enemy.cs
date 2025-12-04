@@ -28,10 +28,14 @@ public enum EnemySizeType
 
 public class Enemy : MonoBehaviour
 {
+    public bool respawnableEnemy = false;
+    [SerializeField] private GameObject visualModel;
+
     private Vector3 originalPosition;   
 
     [Header("Basic Settings")]
     public string enemyName;
+    public string enemyType;
     public EnemyPersonality personality;
     public int maxHealth = 100;
     public int currentHealth;
@@ -76,23 +80,7 @@ public class Enemy : MonoBehaviour
 
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
-        // Ajuste para o NavMesh
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(transform.position, out hit, 5f, NavMesh.AllAreas))
-        {
-            agent.Warp(hit.position);
-
-            // POSIÇÃO ORIGINAL ATUALIZADA AQUI!
-            originalPosition = hit.position;
-
-            Debug.Log($"{enemyName}: originalPosition corrigido para {originalPosition}");
-        }
-        else
-        {
-            // se nem assim encontrou, usa a posição atual mesmo
-            originalPosition = transform.position;
-            Debug.LogWarning($"{enemyName}: NÃO foi possível encaixar no NavMesh!");
-        }
+        
     }
 
     private void Update()
@@ -199,8 +187,11 @@ public class Enemy : MonoBehaviour
         Debug.Log($"{enemyName} atacou o jogador causando {attackDamage} de dano!");
     }
 
+    public bool isDead = false;
+
     public void TakeDamage(int damage)
     {
+        if (isDead) return; // <- evita lógica de morte repetida
 
         currentHealth -= damage;
 
@@ -215,13 +206,37 @@ public class Enemy : MonoBehaviour
 
     private void Die()
     {
+        if (isDead) return;
+        isDead = true;
+
+        QuestKill qk = GetComponent<QuestKill>();
+        if (qk != null)
+            qk.OnKilled(this);
+
         Debug.Log($"{enemyName} morreu!");
 
         if (isQuestTarget)
             QuestSystem.Instance.CompleteQuest(questName);
 
         HideHealthUI();
-        Destroy(gameObject);
+
+        // --- ALTERAÇÃO AQUI ---
+        /*NPC owningNPC = GetComponent<NPC>();
+        if (owningNPC != null)
+        {
+            owningNPC.OnEnemyDied();
+            return; // <- MUITO IMPORTANTE!
+        }*/
+
+        // inimigo sem NPC dono -> segue a lógica normal
+        if (respawnableEnemy)
+        {
+            visualModel.SetActive(true);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
     #endregion
 
