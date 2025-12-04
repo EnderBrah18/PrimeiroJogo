@@ -25,10 +25,7 @@ MonoBehaviour:
     countProgressBeforeStart: 0
     completeVariableName: GalhosColetados
     completeVariableValue: 1
-    deliverItems:
-    - delvItem: {fileID: 11400000, guid: 6cda92a0877e25244987e517be14bf12, type: 2}
-      amount: 5
-      targetVariable: GalhosColetadosCount
+    deliverItems: []
     nextBranches:
     - branchType: 0
       targetStepID: 
@@ -45,5 +42,8 @@ MonoBehaviour:
     countProgressBeforeStart: 0
     completeVariableName: Quest_GalhosCompleta
     completeVariableValue: 1
-    deliverItems: []
+    deliverItems:
+    - delvItem: {fileID: 11400000, guid: 6cda92a0877e25244987e517be14bf12, type: 2}
+      amount: 5
+      targetVariable: GalhosColetadosCount
     nextBranches: []
