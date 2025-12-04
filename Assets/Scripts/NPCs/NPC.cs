@@ -198,7 +198,39 @@ public class NPC : InteractableBase, ISavable
 
     // Valor de reputação aplicado quando o player ataca este NPC (por instância de ataque)
     public int reputationChangeOnAttack = -10;
-    private Rigidbody myRB;
+
+    [Header("Movement - speed")]
+    public float maxSpeed = 2f;
+    public float rotationSpeed = 5f;
+
+    [Header("Steering / Overtake")]
+    public float avoidanceRadius = 1f;           // já tinha
+    public LayerMask npcLayer;                  // já tinha (deve apontar para NPC_Body)
+    public float waypointThreshold = 0.5f;      // ajuste recomendado
+
+    [Tooltip("Quanto o NPC prefere ficar na 'faixa' lateral (metros)")]
+    public float laneOffsetAmount = 0.25f;      // deslocamento lateral padrão
+
+    [Tooltip("Força máxima aplicada pelo avoidance (não pode superar dir principal)")]
+    public float maxAvoidStrength = 0.4f;
+
+    [Tooltip("Quão rápido o NPC volta para a faixa principal após ultrapassar")]
+    public float returnToLaneSpeed = 2.5f;
+
+    [Tooltip("Tamanho da janela lateral para checar espaço para ultrapassar")]
+    public float overtakeCheckDistance = 1.0f;
+
+    [Tooltip("Multiplicador de velocidade ao ultrapassar")]
+    public float overtakeSpeedMultiplier = 1.25f;
+
+    [Header("Soft Queueing")]
+    [Range(0.1f, 1f)]
+    public float closeSlowFactor = 0.45f;       // quão devagar quando muito perto
+
+    // estado runtime
+    private Rigidbody myRB;                     // inicialize no Start()
+    private Transform overtakeTarget = null;    // alvo temporário de lateralização
+    private float overtakeTimer = 0f;
     void Awake()
     {
         float neighborRadius = 5f;
@@ -330,14 +362,6 @@ public class NPC : InteractableBase, ISavable
         }
     }*/
     #region Routine
-
-    [Header("Movement Settings")]
-    public float maxSpeed = 2f;
-    public float rotationSpeed = 5f;
-    public float waypointThreshold = 0.2f;
-    public float avoidanceRadius = 1f;
-    public LayerMask npcLayer;
-
     [Header("Routine Points")]
     public Transform workPoint;
     public Transform sleepPoint;
@@ -561,79 +585,154 @@ public class NPC : InteractableBase, ISavable
 
     private void MoveToWaypoint(Transform target)
     {
-        float dist = Vector3.Distance(transform.position, target.position);
-        if (dist <= waypointThreshold)
+        // Medidas básicas
+        Vector3 toTarget = target.position - transform.position;
+        float dist = toTarget.magnitude;
+
+        // threshold dinâmico pra evitar orbitar (ajuste se necessário)
+        float effectiveThreshold = Mathf.Max(waypointThreshold, avoidanceRadius * 0.35f);
+
+        if (dist <= effectiveThreshold)
             return;
 
-        // DIREÇÃO PRINCIPAL
-        Vector3 dirMain = (target.position - transform.position).normalized;
+        // DIREÇÃO PRINCIPAL (sempre dominante)
+        Vector3 dirMain = toTarget.normalized;
 
-        // COMEÇAMOS COM ELA
-        Vector3 moveDir = dirMain;
+        // LANE BIAS (ligeiro deslocamento lateral para "ficar na calçada")
+        // laneSide = +1 (direita) ou -1 (esquerda) — ajuste por país/região se quiser
+        float laneSide = 1f;
+        Vector3 laneOffset = Vector3.Cross(Vector3.up, dirMain).normalized * laneOffsetAmount * laneSide;
 
-        // ============================================
-        // 1) AVOIDANCE SUAVE E CONTROLADO
-        // ============================================
+        // START moveDir com a direção principal + lane offset (pouco peso)
+        Vector3 moveDir = (dirMain + laneOffset * 0.25f).normalized;
+
+        // ======= AVOIDANCE SUAVE =======
         Collider[] nearby = Physics.OverlapSphere(transform.position, avoidanceRadius, npcLayer);
-
         Vector3 avoid = Vector3.zero;
-        int count = 0;
+        int avoidCount = 0;
 
         foreach (var col in nearby)
         {
-            // IGNORA A SI MESMO
-            if (col.attachedRigidbody == myRB)
-                continue;
-
-            // IGNORA TRIGGERS
-            if (col.isTrigger)
-                continue;
+            if (col.attachedRigidbody == myRB) continue;   // ignora próprio corpo
+            if (col.isTrigger) continue;                   // ignora triggers
 
             Vector3 toOther = col.transform.position - transform.position;
             float d = toOther.magnitude;
+            if (d < 0.001f) continue;
 
-            // Só desvia se o outro NPC estiver NA FRENTE
-            if (Vector3.Dot(dirMain, toOther.normalized) > 0.5f)
+            // Só preocupa-se com quem está adiante (evita frenagens bruscas por trás)
+            if (Vector3.Dot(dirMain, toOther.normalized) > 0.2f)
             {
                 Vector3 side = Vector3.Cross(Vector3.up, toOther).normalized;
-
-                // força proporcional à proximidade
                 float strength = Mathf.Lerp(0.6f, 0.05f, d / avoidanceRadius);
-
                 avoid += side * strength;
-                count++;
+                avoidCount++;
             }
         }
 
-        if (count > 0)
+        if (avoidCount > 0)
         {
-            avoid /= count;
+            avoid /= avoidCount;
 
-            // CONTROLAR — nunca mais forte que a direção principal
-            avoid = Vector3.ClampMagnitude(avoid, 0.4f);
+            // limiter — não permitir que avoidance supere a força principal
+            avoid = Vector3.ClampMagnitude(avoid, maxAvoidStrength);
 
-            // Adiciona um *pouco*
-            moveDir += avoid;
+            // Se houver avoid, aplicamos pequeno peso
+            moveDir = (moveDir + avoid * 0.6f).normalized;
         }
 
-        // ============================================
-        // 2) RENORMALIZA
-        // ============================================
-        moveDir.Normalize();
+        // ======= SOFT QUEUEING (reduzir velocidade se estiver muito perto) =======
+        float speedMultiplier = 1f;
+        foreach (var col in nearby)
+        {
+            if (col.attachedRigidbody == myRB) continue;
+            if (col.isTrigger) continue;
 
-        // ============================================
-        // 3) MOVIMENTO FINAL — sem overshoot
-        // ============================================
-        transform.position += moveDir * maxSpeed * Time.deltaTime;
+            float d = Vector3.Distance(transform.position, col.transform.position);
+            if (d < avoidanceRadius * 0.5f)
+                speedMultiplier = Mathf.Lerp(speedMultiplier, closeSlowFactor, Time.deltaTime * 6f);
+        }
 
-        // ============================================
-        // 4) ROTAÇÃO SUAVE
-        // ============================================
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            Quaternion.LookRotation(moveDir),
-            Time.deltaTime * rotationSpeed
-        );
+        // ======= OVERTAKE CHECK (ultrapassagem inteligente) =======
+        // Se existe um NPC lento adiante, verificamos espaço lateral com um raycast
+        bool tryOvertake = false;
+        Transform candidate = null;
+
+        foreach (var col in nearby)
+        {
+            if (col.attachedRigidbody == myRB) continue;
+            if (col.isTrigger) continue;
+
+            Vector3 toOther = col.transform.position - transform.position;
+            if (Vector3.Dot(dirMain, toOther.normalized) > 0.7f) // está bem à frente
+            {
+                // se estiver muito próximo em linha (através do eixo forward), considerar ultrapassar
+                if (toOther.magnitude < avoidanceRadius * 1.1f)
+                {
+                    candidate = col.transform;
+                    tryOvertake = true;
+                    break;
+                }
+            }
+        }
+
+        // Se candidate encontrado, checar espaço lateral usando dois raycasts (direita/esquerda)
+        if (tryOvertake && candidate != null)
+        {
+            // direção lateral preferida (usa laneSide)
+            Vector3 rightDir = transform.right;
+            Vector3 leftDir = -transform.right;
+
+            bool rightClear = !Physics.Raycast(transform.position, rightDir, overtakeCheckDistance, LayerMask.GetMask("Default", LayerMask.LayerToName(npcLayer)));
+            bool leftClear = !Physics.Raycast(transform.position, leftDir, overtakeCheckDistance, LayerMask.GetMask("Default", LayerMask.LayerToName(npcLayer)));
+
+            // escolha de lado respeitando laneSide (preferência)
+            if (laneSide > 0f && rightClear) overtakeTarget = candidate;
+            else if (laneSide < 0f && leftClear) overtakeTarget = candidate;
+            else if (rightClear) overtakeTarget = candidate;
+            else if (leftClear) overtakeTarget = candidate;
+            else overtakeTarget = null;
+
+            if (overtakeTarget != null)
+                overtakeTimer = 0.6f; // mantém estado por um tempo
+        }
+
+        // Se estamos em overtaking mode ativa, aplicar deslocamento lateral maior e aumentar velocidade
+        if (overtakeTimer > 0f && overtakeTarget != null)
+        {
+            // lateral direction away from the candidate to pass
+            Vector3 toOver = (overtakeTarget.position - transform.position).normalized;
+            Vector3 side = Vector3.Cross(Vector3.up, toOver).normalized * (laneOffsetAmount * 1.1f);
+
+            // mover mais pro lado (mas sem perder dirMain);
+            moveDir = (dirMain + side * 0.9f).normalized;
+
+            speedMultiplier *= overtakeSpeedMultiplier;
+            overtakeTimer -= Time.deltaTime;
+        }
+        else
+        {
+            // forçar retorno gradual à faixa principal
+            overtakeTarget = null;
+            // opcionalmente "puxar" moveDir de volta ao dirMain + laneOffset suavemente
+            Vector3 lanePreferred = (dirMain + laneOffset).normalized;
+            moveDir = Vector3.Slerp(moveDir, lanePreferred, Time.deltaTime * returnToLaneSpeed);
+        }
+
+        // ======= PREVENIR OVERSHOOT: se o próximo passo ultrapassaria o target, trave no target =======
+        Vector3 proposed = transform.position + moveDir * maxSpeed * speedMultiplier * Time.deltaTime;
+        if (Vector3.Distance(transform.position, target.position) < Vector3.Distance(proposed, target.position))
+        {
+            proposed = target.position;
+        }
+
+        // ======= APLICA MOVIMENTO E ROTAÇÃO =======
+        transform.position = proposed;
+
+        if (moveDir.sqrMagnitude > 0.0001f)
+        {
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDir), Time.deltaTime * rotationSpeed);
+        }
     }
 
     private Transform GetRoutineDestination()
