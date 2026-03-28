@@ -16,18 +16,23 @@ public class InputManager : MonoBehaviour
     private InputAction _sprint;
     private InputAction _interact;
     private InputAction _climb;
+    private InputAction _attack;
+    private InputAction _aim;   // novo: botão direito / aim
+    private InputAction _lock;  // novo: lock-on toggle
 
     // Eventos para actions do tipo "performed"
     public event Action<InputAction.CallbackContext> OnJumpPerformed;
     public event Action<InputAction.CallbackContext> OnDashPerformed;
     public event Action<InputAction.CallbackContext> OnInteractPerformed;
     public event Action<InputAction.CallbackContext> OnClimbPerformed;
+    public event Action<InputAction.CallbackContext> OnAttackPerformed;
 
     // Guardar delegates para conseguir unsub later
     private Action<InputAction.CallbackContext> _jumpForwarder;
     private Action<InputAction.CallbackContext> _dashForwarder;
     private Action<InputAction.CallbackContext> _interactForwarder;
     private Action<InputAction.CallbackContext> _climbForwarder;
+    private Action<InputAction.CallbackContext> _attackForwarder;
 
     private void Awake()
     {
@@ -52,17 +57,22 @@ public class InputManager : MonoBehaviour
         _sprint = actions.FindAction("Sprint");
         _interact = actions.FindAction("Interact");
         _climb = actions.FindAction("Climb");
+        _attack = actions.FindAction("Attack");
+        _aim = actions.FindAction("Aim");   // procura ação "Aim" no PlayerInput
+        _lock = actions.FindAction("Lock"); // procura ação "Lock" no PlayerInput
 
         // criar forwarders (delegates estáveis) para unsubscribing
         _jumpForwarder = ctx => OnJumpPerformed?.Invoke(ctx);
         _dashForwarder = ctx => OnDashPerformed?.Invoke(ctx);
         _interactForwarder = ctx => OnInteractPerformed?.Invoke(ctx);
         _climbForwarder = ctx => OnClimbPerformed?.Invoke(ctx);
+        _attackForwarder = ctx => OnAttackPerformed?.Invoke(ctx);
 
         if (_jump != null) _jump.performed += _jumpForwarder;
         if (_dash != null) _dash.performed += _dashForwarder;
         if (_interact != null) _interact.performed += _interactForwarder;
         if (_climb != null) _climb.performed += _climbForwarder;
+        if (_attack != null) _attack.performed += _attackForwarder;
     }
 
     private void OnDestroy()
@@ -72,6 +82,8 @@ public class InputManager : MonoBehaviour
         if (_dash != null && _dashForwarder != null) _dash.performed -= _dashForwarder;
         if (_interact != null && _interactForwarder != null) _interact.performed -= _interactForwarder;
         if (_climb != null && _climbForwarder != null) _climb.performed -= _climbForwarder;
+        if (_attack != null && _attackForwarder != null)
+            _attack.performed -= _attackForwarder;
     }
 
     public InputAction GetAction(string actionName)
@@ -87,6 +99,10 @@ public class InputManager : MonoBehaviour
     public bool WasClimbPressedThisFrame() => _climb != null && _climb.WasPressedThisFrame();
     public bool IsSprintPressed() => _sprint != null && _sprint.ReadValue<float>() > 0.5f;
 
+    // NOVOS HELPERS para combate (aim/lock)
+    public bool IsAimPressed() => _aim != null && _aim.ReadValue<float>() > 0.5f;
+    public bool WasLockPressedThisFrame() => _lock != null && _lock.WasPressedThisFrame();
+
     // Expor a InputAction cru (se alguém quiser subscrever diretamente)
     public InputAction MoveAction => _move;
     public InputAction JumpAction => _jump;
@@ -94,10 +110,11 @@ public class InputManager : MonoBehaviour
     public InputAction SprintAction => _sprint;
     public InputAction InteractAction => _interact;
     public InputAction ClimbAction => _climb;
+    public InputAction AttackAction => _attack;
+    public InputAction AimAction => _aim;
+    public InputAction LockAction => _lock;
 
-
-
-
+    // ... (restante do arquivo permanece igual)
     private const string REBIND_PREFS_KEY = "rebinds_json_v1";
 
     /// <summary>
@@ -201,6 +218,3 @@ public class InputManager : MonoBehaviour
         Debug.Log("Bindings resetados para default");
     }
 }
-
-
-

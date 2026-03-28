@@ -6,8 +6,9 @@ using TMPro;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Windows;
-
+using UnityEngine.AI;
+using DG.Tweening;
+using UnityEngine.UI;
 
 public enum CharacterState
 {
@@ -18,7 +19,7 @@ public enum CharacterState
     SPRINTING
 }
 
-public class Player : MonoBehaviour 
+public class Player : MonoBehaviour
 {
     public static Player Instance { get; private set; }
 
@@ -28,6 +29,34 @@ public class Player : MonoBehaviour
     public CharacterController _characterController;
     public Animator animator;
     [SerializeField] private Transform cameraTransform;
+
+    [Header("UI Bars")]
+    public Image healthBar;
+    public Image staminaBar;
+    public TMP_Text staminaText;
+    public TMP_Text healthText;
+
+    [Header("CombatSystem")]
+    public bool isLockedOn = false;
+    public Transform lockTarget;
+
+    public bool rightClickAim = false;   // mira com botão direito
+    public bool autoTurnOnAttack = true; // vira quando atacar
+    public bool isAttacking = false;
+    public float attackCooldown => stats.combat.attackCooldown;
+    public float attackDamage => stats.combat.attackDamage;
+    public float attackRange => stats.combat.attackRange;
+    public float attackKnockback => stats.combat.attackKnockback;
+    public float attackStaminaCost => stats.combat.attackStaminaCost;
+    public int maxHealth => stats.combat.maxHealth;
+    public int currentHealth;
+    public int HealthRegenRate => stats.combat.HealthRegenRate;
+    public float HealthRegenDelay => stats.combat.HealthRegenDelay;
+    public float defense => stats.combat.defense;
+    public float HealthRegenInterval = 0.5f;
+
+    private float lastAttackTime = -Mathf.Infinity;
+    private Coroutine regenCoroutine;
 
     [SerializeField] private PlayerStatsSO stats;
 
@@ -43,7 +72,6 @@ public class Player : MonoBehaviour
     public bool blockMovement = false;
 
     public PlayerStatsSO Stats => stats;
-
 
     public float MoveSpeed
     {
@@ -62,7 +90,6 @@ public class Player : MonoBehaviour
         get => stats.stamina.maxStamina;
         set => stats.stamina.maxStamina = Mathf.Max(0, value);
     }
-
 
     private float groundedGraceTime = 0.2f;
     private float lastGroundedTime;
@@ -128,8 +155,19 @@ public class Player : MonoBehaviour
     [HideInInspector] public float totalSpeed;
     [HideInInspector] public float totalStamina;
 
+    // coroutine para resetar isAttacking
+    private Coroutine attackResetRoutine;
+
+    private bool attackBlocked = false;
+
+    // parâmetros de hit
+    [Header("Attack Hit Settings")]
+    public float attackHitRadius = 0.6f;
+    public LayerMask attackLayerMask = ~0; // por padrão atinge tudo; ajuste no inspector para camada de inimigos
+
     private void Awake()
     {
+        Debug.Log("PLAYER AWAKE");
 
         if (Instance != null && Instance != this)
         {
@@ -152,10 +190,16 @@ public class Player : MonoBehaviour
             return;
         }
         InputManager.Instance.OnInteractPerformed += OnInteractPerformed;
+        // subscribe para ataque
+        InputManager.Instance.OnAttackPerformed += OnAttackPerformed;
 
+        // fallback para cameraTransform se não estiver atribuído
+        if (cameraTransform == null && Camera.main != null)
+            cameraTransform = Camera.main.transform;
 
         // inicializações anteriores
         currentStamina = maxStamina;
+        currentHealth = maxHealth;
         if (_characterController.isGrounded)
         {
             lastGroundedTime = Time.time;
@@ -190,7 +234,16 @@ public class Player : MonoBehaviour
     private void OnDestroy()
     {
         if (InputManager.Instance != null)
+        {
             InputManager.Instance.OnInteractPerformed -= OnInteractPerformed;
+            InputManager.Instance.OnAttackPerformed -= OnAttackPerformed;
+        }
+    }
+
+    private void OnAttackPerformed(InputAction.CallbackContext ctx)
+    {
+        // chama o método de ataque quando a action "Attack" for performed
+        Attack();
     }
 
     private void OnInteractPerformed(InputAction.CallbackContext ctx)
@@ -212,8 +265,16 @@ public class Player : MonoBehaviour
             return;
         }
 
+        // Atualiza estado de mira com botão direito (segurar) - informativo, para UI etc.
+        rightClickAim = InputManager.Instance != null && InputManager.Instance.IsAimPressed();
 
-            finalMovement = Vector3.zero;
+        // Toggle lock-on quando o botão de lock é pressionado
+        if (InputManager.Instance != null && InputManager.Instance.WasLockPressedThisFrame())
+        {
+            TryToggleLockFromCrosshair();
+        }
+
+        finalMovement = Vector3.zero;
 
         #region CollectUpdate
 
@@ -252,13 +313,12 @@ public class Player : MonoBehaviour
                 HandleJump();
                 HandleGravity();
                 break;
-                
-
         }
 
         // animações...
         animator.SetBool("isIdle", currentState == CharacterState.IDLE);
         animator.SetBool("isWalking", currentState == CharacterState.WALKING);
+        animator.SetBool("isSprinting", currentState == CharacterState.SPRINTING);
         animator.SetBool("isJumping", currentState == CharacterState.JUMPING);
         animator.SetBool("isFalling", currentState == CharacterState.FALLING);
 
@@ -271,21 +331,21 @@ public class Player : MonoBehaviour
     }
 
     void UpdateState()
-    { 
+    {
         Vector2 input = InputManager.Instance.GetMoveVector();
 
-            if (!isReallyGrounded)
-            {
-                currentState = vSpeed > 0 ? CharacterState.JUMPING : CharacterState.FALLING;
-            }
-            else if (input.magnitude > 0.1f)
-            {
-                currentState = CharacterState.WALKING;
-            }
-            else
-            {
-                currentState = CharacterState.IDLE;
-            }
+        if (!isReallyGrounded)
+        {
+            currentState = vSpeed > 0 ? CharacterState.JUMPING : CharacterState.FALLING;
+        }
+        else if (input.magnitude > 0.1f)
+        {
+            currentState = CharacterState.WALKING;
+        }
+        else
+        {
+            currentState = CharacterState.IDLE;
+        }
     }
 
     #region Movement
@@ -293,8 +353,13 @@ public class Player : MonoBehaviour
     {
         Vector2 input = InputManager.Instance.GetMoveVector();
 
-        Vector3 cameraForward = cameraTransform.forward;
-        Vector3 cameraRight = cameraTransform.right;
+        Vector3 cameraForward = Vector3.zero;
+        Vector3 cameraRight = Vector3.zero;
+        if (cameraTransform != null)
+        {
+            cameraForward = cameraTransform.forward;
+            cameraRight = cameraTransform.right;
+        }
         cameraForward.y = 0f;
         cameraRight.y = 0f;
         cameraForward.Normalize();
@@ -302,10 +367,36 @@ public class Player : MonoBehaviour
 
         Vector3 moveDirection = (cameraForward * input.y + cameraRight * input.x).normalized;
 
-        if (moveDirection != Vector3.zero)
+        // ROTATION: só alteramos a rotação se NÃO estivermos em ataque (para não sobrescrever a rotação definida no Attack)
+        bool aimPressedNow = InputManager.Instance != null && InputManager.Instance.IsAimPressed();
+
+        if (!(isAttacking && autoTurnOnAttack))
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+            if (isLockedOn && lockTarget != null)
+            {
+                Vector3 lookDir = lockTarget.position - transform.position;
+                lookDir.y = 0;
+                Quaternion targetRotation = Quaternion.LookRotation(lookDir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+            }
+            else if (aimPressedNow)
+            {
+                // Vira para onde a câmera está apontando
+                Vector3 camForward = cameraForward;
+                camForward.y = 0;
+
+                if (camForward.sqrMagnitude > 0.1f)
+                {
+                    Quaternion targetRotation = Quaternion.LookRotation(camForward);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+                }
+            }
+            else if (moveDirection != Vector3.zero)
+            {
+                // Movimento normal
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+            }
         }
 
         if (_characterController.isGrounded)
@@ -325,6 +416,7 @@ public class Player : MonoBehaviour
         }
 
     }
+    #endregion
 
     void HandleJump()
     {
@@ -334,6 +426,7 @@ public class Player : MonoBehaviour
             currentState = CharacterState.JUMPING;
             lastGroundedTime = -1;
             currentStamina -= staminaJumpCost;
+            UpdateStaminaUI();
         }
 
         if (!isReallyGrounded)
@@ -353,7 +446,6 @@ public class Player : MonoBehaviour
             vSpeed += gravity * Time.deltaTime;
         }
     }
-    #endregion
 
     void UpdateStamina()
     {
@@ -388,15 +480,16 @@ public class Player : MonoBehaviour
     private void DrainStamina(float amount)
     {
         currentStamina -= amount;
+        UpdateStaminaUI();
         if (currentStamina < 0) currentStamina = 0;
     }
 
     private void RegenStamina(float amount)
     {
         currentStamina += amount;
+        UpdateStaminaUI();
         if (currentStamina > maxStamina) currentStamina = maxStamina;
     }
-
 
     #region Equipament Manager
 
@@ -479,8 +572,6 @@ public class Player : MonoBehaviour
         return removed;
     }
 
-
-
     public Equipment GetEquipped(EquipmentType type)
     {
         return type switch
@@ -541,7 +632,8 @@ public class Player : MonoBehaviour
     }
 
     public void UpdateStats()
-    {;
+    {
+        ;
 
         // Lista de equipamentos equipados
         Equipment[] equippedItems =
@@ -566,7 +658,6 @@ public class Player : MonoBehaviour
         }
     }
 
-
     #endregion
 
     public void SetMovementBlocked(bool blocked)
@@ -579,6 +670,283 @@ public class Player : MonoBehaviour
             vSpeed = 0f;
         }
     }
+
+    public void SetAttackBlocked(bool blocked)
+    {
+        attackBlocked = blocked;
+
+        if (blocked)
+        {
+            // Cancela ataque atual
+            if (isAttacking)
+            {
+                isAttacking = false;
+
+                if (attackResetRoutine != null)
+                {
+                    StopCoroutine(attackResetRoutine);
+                    attackResetRoutine = null;
+                }
+            }
+        }
+    }
+
+    #region Combat System
+    public void ToggleLock(Transform target)
+    {
+        if (isLockedOn)
+        {
+            isLockedOn = false;
+            lockTarget = null;
+            return;
+        }
+
+        if (target != null)
+        {
+            isLockedOn = true;
+            lockTarget = target;
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+        UpdateHealthUI();
+
+        StartHealthRegen();
+        if (currentHealth <= 0)
+            Die();
+    }
+
+    private void StartHealthRegen()
+    {
+        // Se já está regenerando, reinicia
+        if (regenCoroutine != null)
+            StopCoroutine(regenCoroutine);
+
+        regenCoroutine = StartCoroutine(RegenHealthRoutine());
+    }
+
+    private void RegenHealth(float amount)
+    {
+        currentHealth += HealthRegenRate;
+        FloatingTextManager.Instance.CreateText("+" + HealthRegenRate, transform.position, Color.green);
+        UpdateHealthUI();
+        if (currentHealth > maxHealth) currentHealth = maxHealth;
+    }
+
+    private IEnumerator RegenHealthRoutine()
+    {
+        // espera o delay antes de começar a regenerar
+        yield return new WaitForSeconds(HealthRegenDelay);
+
+        // enquanto não estiver cheio
+        while (currentHealth < maxHealth)
+        {
+            RegenHealth(HealthRegenRate);
+            yield return new WaitForSeconds(HealthRegenInterval);
+        }
+
+        regenCoroutine = null; // terminou
+    }
+
+    private void Die()
+    {
+        Debug.Log($"morreu!");
+        //lógica de morte do jogador aqui
+
+    }
+
+    public void Attack()
+    {
+
+        if (attackBlocked)
+            return;
+
+        // Verifica stamina
+        if (currentStamina < attackStaminaCost)
+        {
+            // opcional: reproduzir som de falta de stamina
+            return;
+        }
+
+        // Evita spam
+        if (Time.time < lastAttackTime + attackCooldown)
+            return;
+
+        lastAttackTime = Time.time;
+        isAttacking = true;
+
+        // consome stamina
+        DrainStamina(attackStaminaCost);
+
+        HandleAttackRotation();
+
+        // detectar e aplicar dano imediatamente (pode sincronizar com animação se quiser)
+        PerformAttackHit();
+
+        // iniciar reset para isAttacking (ideal: reset via AnimationEvent ao terminar animação)
+        if (attackResetRoutine != null) StopCoroutine(attackResetRoutine);
+        attackResetRoutine = StartCoroutine(ResetAttackState(Mathf.Clamp(attackCooldown * 0.5f, 0.1f, attackCooldown)));
+
+        animator.SetTrigger("attack");
+    }
+
+    IEnumerator ResetAttackState(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        isAttacking = false;
+        attackResetRoutine = null;
+    }
+
+    void PerformAttackHit()
+    {
+        Vector3 origin = transform.position + Vector3.up * 1f;
+        Vector3 dir = transform.forward;
+
+        RaycastHit[] hits = Physics.SphereCastAll(origin, attackHitRadius, dir, attackRange, attackLayerMask, QueryTriggerInteraction.Ignore);
+
+        foreach (var hit in hits)
+        {
+            if (hit.collider == null) continue;
+
+            Vector3 pushDir = (hit.collider.transform.position - transform.position);
+            pushDir.y = 0;
+            if (pushDir.sqrMagnitude == 0) pushDir = dir;
+
+            // 1️⃣ Tenta achar NPC
+            NPC npc = hit.collider.GetComponentInParent<NPC>();
+            if (npc != null)
+            {
+                //npc.ReceiveDamage(Mathf.RoundToInt(attackDamage));
+
+                if (!npc.isInvincible)
+                {
+                    FloatingTextManager.Instance.CreateText(
+                        "-" + attackDamage + " dealt to " + npc.npcName,
+                        transform.position,
+                        Color.red
+                    );
+
+                    ApplyKnockback(npc.gameObject, pushDir);
+                }
+                continue;
+            }
+
+            // 2️⃣ Se não achou NPC, tenta achar Enemy
+            Enemy enemy = hit.collider.GetComponentInParent<Enemy>();
+            if (enemy == null) continue;
+
+            enemy.TakeDamage(Mathf.RoundToInt(attackDamage));
+
+            FloatingTextManager.Instance.CreateText(
+                "-" + attackDamage.ToString() + " dealt to " + enemy.enemyName,
+                transform.position,
+                Color.red
+            );
+
+            ApplyKnockback(enemy.gameObject, pushDir);
+        }
+    }
+
+    void ApplyKnockback(GameObject target, Vector3 pushDir)
+    {
+        Rigidbody rb = target.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.AddForce(pushDir.normalized * attackKnockback, ForceMode.Impulse);
+            return;
+        }
+
+        var enemy = target.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.ApplyKnockback(pushDir, attackKnockback);
+        }
+    }
+
+    void HandleAttackRotation()
+    {
+        // 1 — Se estiver em lock-on → sempre olha para o alvo
+        if (isLockedOn && lockTarget != null)
+        {
+            Vector3 dir = lockTarget.position - transform.position;
+            dir.y = 0;
+            transform.rotation = Quaternion.LookRotation(dir);
+            return;
+        }
+
+        // 2 — Se estiver segurando botão direito AGORA → mira com a câmera
+        bool aimPressedNow = InputManager.Instance != null && InputManager.Instance.IsAimPressed();
+        if (aimPressedNow)
+        {
+            Vector3 camForward = (cameraTransform != null ? cameraTransform.forward : Vector3.forward);
+            camForward.y = 0;
+            transform.rotation = Quaternion.LookRotation(camForward);
+            return;
+        }
+
+        // 3 — Se NÃO estiver se movendo → vira instantaneamente para a câmera
+        Vector2 input = InputManager.Instance.GetMoveVector();
+        if (input.magnitude < 0.1f)
+        {
+            Vector3 camForward = (cameraTransform != null ? cameraTransform.forward : Vector3.forward);
+            camForward.y = 0;
+            transform.rotation = Quaternion.LookRotation(camForward);
+        }
+    }
+
+    private void TryToggleLockFromCrosshair()
+    {
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            ToggleLock(null);
+            return;
+        }
+
+        Ray ray = cam.ScreenPointToRay(new Vector2(Screen.width / 2f, Screen.height / 2f));
+        if (Physics.Raycast(ray, out RaycastHit hit, 30f))
+        {
+            var enemy = hit.collider.GetComponentInParent<Enemy>();
+            if (enemy != null)
+            {
+                ToggleLock(enemy.transform);
+                return;
+            }
+        }
+
+        // se não houver inimigo no centro, desativa lock
+        ToggleLock(null);
+    }
+
+    #endregion
+
+    public void UpdateHealthUI(bool instant = false)
+    {
+        if (healthBar == null) return;
+
+        float fill = (float)currentHealth / maxHealth;
+
+        healthText.text = $"{currentHealth} / {maxHealth}";
+
+        if (instant)
+            healthBar.fillAmount = fill;
+        else
+            healthBar.DOFillAmount(fill, 0.25f).SetEase(Ease.OutQuad);
+    }
+
+    public void UpdateStaminaUI(bool instant = false)
+    {
+        if (staminaBar == null) return;
+
+        float fill = currentStamina / maxStamina;
+
+        staminaText.text = $"{Mathf.RoundToInt(currentStamina)} / {Mathf.RoundToInt(maxStamina)}";
+
+        if (instant)
+            staminaBar.fillAmount = fill;
+        else
+            staminaBar.DOFillAmount(fill, 0.2f).SetEase(Ease.OutQuad);
+    }
 }
-
-

@@ -60,16 +60,43 @@ public class Inventory
 
     private List<InventorySlot> GetTargetSlots(ItemSO item)
     {
-        if (slots != null) return slots;
+        List<InventorySlot> targetSlots = null;
 
         switch (item.itemType)
         {
-            case ItemType.Resource: return resourceSlots;
-            case ItemType.Equipment: return equipmentSlots;
-            case ItemType.Consumable: return consumableSlots;
-            case ItemType.QuestItem: return questItemSlots;
-            default: return null;
+            case ItemType.Resource:
+                targetSlots = resourceSlots;
+                break;
+            case ItemType.Equipment:
+                targetSlots = equipmentSlots;
+                break;
+            case ItemType.Consumable:
+                targetSlots = consumableSlots;
+                break;
+            case ItemType.QuestItem:
+                targetSlots = questItemSlots;
+                break;
+            default:
+                Debug.LogWarning("GetTargetSlots: itemType desconhecido!");
+                return new List<InventorySlot>();
         }
+
+        if (targetSlots == null)
+            targetSlots = new List<InventorySlot>();
+
+        // Remover elementos nulos da lista
+        targetSlots.RemoveAll(slot => slot == null);
+
+        // Aqui filtramos apenas slots **válidos para o item**
+        List<InventorySlot> validSlots = new List<InventorySlot>();
+        foreach (var slot in targetSlots)
+        {
+            // slot.item pode ser null (slot vazio)
+            if (slot.item == null || slot.item == item)
+                validSlots.Add(slot);
+        }
+
+        return validSlots;
     }
 
     public bool AddItem(ItemSO item, int amount = 1)
@@ -116,31 +143,41 @@ public class Inventory
 
     public bool RemoveItem(ItemSO item, int amount = 1)
     {
+        if (item == null || amount <= 0) return false;
+
         List<InventorySlot> targetSlots = GetTargetSlots(item);
-        if (targetSlots == null) return false;
+        if (targetSlots == null || targetSlots.Count == 0) return false;
 
-        for (int i = 0; i < targetSlots.Count; i++)
+        int remaining = amount;
+
+        foreach (var slot in targetSlots)
         {
-            var slot = targetSlots[i];
-            if (slot == null || slot.item != item) continue;
+            if (slot.item == null) continue; // slot vazio, ignora
 
-            if (slot.quantity > amount)
+            if (slot.item != item) continue; // slot com outro item, ignora
+
+            if (slot.quantity >= remaining)
             {
-                slot.quantity -= amount;
-                currentWeight -= item.Weight * amount;
+                slot.quantity -= remaining;
+                currentWeight -= item.Weight * remaining;
+
+                if (slot.quantity == 0)
+                    slot.item = null; // slot fica vazio
+
+                OnInventoryChanged?.Invoke(item.itemType);
+                return true;
             }
             else
             {
+                remaining -= slot.quantity;
                 currentWeight -= item.Weight * slot.quantity;
-                slot.item = null;
                 slot.quantity = 0;
+                slot.item = null;
             }
-
-            OnInventoryChanged?.Invoke(item.itemType); // Dispara evento
-            return true;
         }
 
-        return false;
+        // Se sobrou algo que não conseguimos remover
+        return remaining == 0;
     }
 
     public float GetCurrentWeight()

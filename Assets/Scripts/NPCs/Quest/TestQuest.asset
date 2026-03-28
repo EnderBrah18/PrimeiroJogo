@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d96c4594e8bdd81458a04a2143b3e7b7, type: 3}
+  m_Name: TestQuest
+  m_EditorClassIdentifier: Assembly-CSharp::QuestData
+  questName: Coleta
+  rewardGold: 50
+  requirementVariable: 
+  requirementOperator: =
+  requirementValue: 0
+  steps:
+  - stepID: Step_1
+    stepName: Recolher Galhos
+    targetID: GalhosColetadosCount
+    requiredAmount: 5
+    countProgressBeforeStart: 0
+    completeVariableName: GalhosColetados
+    completeVariableValue: 1
+    deliverItems: []
+    nextBranches:
+    - branchType: 0
+      targetStepID: 
+      variableName: 
+      comparison: 
+      value: 0
+      dialogueChoiceID: 
+      eventID: 
+      nextStepID: Step_2
+  - stepID: Step_2
+    stepName: Entregar Recursos
+    targetID: GalhosEntreguesCount
+    requiredAmount: 1
+    countProgressBeforeStart: 0
+    completeVariableName: Quest_GalhosCompleta
+    completeVariableValue: 1
+    deliverItems:
+    - delvItem: {fileID: 11400000, guid: 6cda92a0877e25244987e517be14bf12, type: 2}
+      amount: 5
+      targetVariable: GalhosColetadosCount
+    nextBranches: []

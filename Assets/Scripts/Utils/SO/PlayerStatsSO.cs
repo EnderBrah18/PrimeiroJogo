@@ -22,6 +22,11 @@ public class PlayerStatsSO : ScriptableObject, ISOSavable
     [Header("Climb")]
     public ClimbStats climb = new ClimbStats();
 
+    [Header("Combat")]
+    public CombatStats combat = new CombatStats();
+
+    
+
     [Header("Inventory")]
     public InventoryStats inventory = new InventoryStats();
 
@@ -34,6 +39,21 @@ public class PlayerStatsSO : ScriptableObject, ISOSavable
         public float baseMoveSpeed = 10f;
         public float baseJumpForce = 8f;
         public float turnSpeed = 10f;
+    }
+
+    [Serializable]
+    public class CombatStats
+    {
+        public float attackCooldown = 0.5f;
+        public float attackDamage = 10f;
+        public float attackRange = 2f;
+        public float attackKnockback = 5f;
+        public float attackStaminaCost = 2f;
+        public int maxHealth = 100;
+        public int HealthRegenRate = 5;
+        public float HealthRegenDelay = 5f;
+        public float defense = 0f;
+
     }
 
     [Serializable]

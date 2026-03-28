@@ -5,7 +5,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ShopBase : MonoBehaviour
+public class ShopBase : InteractableBase
 {
     public enum ShopType { Sell, Equipment, Upgrade }
     public ShopType shopType;
@@ -304,5 +304,10 @@ public class ShopBase : MonoBehaviour
     public void CloseShop()
     {
         shopManager.CloseAll();
+    }
+
+    public override void Interact()
+    {
+        OpenShop();
     }
 }

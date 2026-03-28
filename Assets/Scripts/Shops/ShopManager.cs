@@ -1,6 +1,7 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System;
+using static Unity.Collections.AllocatorManager;
 
 public class ShopManager : MonoBehaviour
 {
@@ -17,11 +18,9 @@ public class ShopManager : MonoBehaviour
     public GameObject EquipmentShopUI;
     public GameObject UpgradeShopUI;
 
-    [Header("Input")]
-    public InputActionReference interactAction;
-    private InteractionHandler interactionHandler;
-
     private GameObject currentOpenShop = null;
+
+    private bool blocked = false;
 
     void Awake()
     {
@@ -37,19 +36,6 @@ public class ShopManager : MonoBehaviour
         CloseAll();
     }
 
-    void Update()
-    {
-        if (interactAction.action.WasPressedThisFrame())
-        {
-            interactionHandler?.Interact();
-        }
-    }
-
-    public void RegisterInteractionHandler(InteractionHandler handler)
-    {
-        interactionHandler = handler;
-    }
-
     public void CloseAll()
     {
         currentOpenShop = null;
@@ -59,7 +45,7 @@ public class ShopManager : MonoBehaviour
         SellShopUI.SetActive(false);
         EquipmentShopUI.SetActive(false);
         UpgradeShopUI.SetActive(false);
-        UIManager.IsShopOpen = false;
+        ShopUIManager.IsShopOpen = false;
 
         Player.Instance?.SetMovementBlocked(false);
         cameraScript?.HandleInventoryToggled(false);
@@ -75,9 +61,11 @@ public class ShopManager : MonoBehaviour
         // Abre apenas a loja solicitada
         ShopUI.SetActive(true);
         shop.SetActive(true);
-        UIManager.IsShopOpen = true;
+        ShopUIManager.IsShopOpen = true;
+        blocked = !blocked;
 
-        Player.Instance?.SetMovementBlocked(true);
+        Player.Instance?.SetMovementBlocked(blocked);
+        Player.Instance?.SetAttackBlocked(blocked);
         cameraScript?.HandleInventoryToggled(true);
 
         currentOpenShop = shop;
@@ -130,7 +118,7 @@ public class ShopManager : MonoBehaviour
     }
 
     //temporário
-    public static class UIManager
+    public static class ShopUIManager
     {
         public static bool IsShopOpen = false;
     }

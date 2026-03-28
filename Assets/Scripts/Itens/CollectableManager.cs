@@ -84,6 +84,7 @@ public class CollectableManager : MonoBehaviour
             else
             {
                 Debug.Log("Ferramenta inadequada ou nível muito baixo.");
+                FloatingTextManager.Instance.CreateText("Ferramenta inadequada ou nível muito baixo", transform.position, Color.yellow);
                 // Aqui você pode mostrar uma mensagem na UI também
             }
         }

@@ -1,6 +1,10 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Collections;
+using Unity.AI.Navigation;
+using UnityEngine.AI;
+
+
 
 
 #if UNITY_EDITOR
@@ -36,14 +40,24 @@ public class DungeonGenerator : MonoBehaviour
     public CanvasGroup LoadingScreen;
     private GameObject player_;
 
+    public NavMeshSurface humanSurface;
+    public NavMeshSurface ratSurface;
+
+    private int ratAgentID;
+    private int humanAgentID;
+
     // ============================================================
     // ====================== GERAÇÃO ==============================
     // ============================================================
     private void Awake()
     {
         player_ = GameObject.FindGameObjectWithTag("Player");
-        player_.transform.position = new Vector3(0, 15, 0);
+        player_.transform.position = new Vector3(-25, 1, 1);
         Player.Instance?.SetMovementBlocked(true);
+
+        ratAgentID = NavMesh.GetSettingsByIndex(0).agentTypeID;
+        humanAgentID = NavMesh.GetSettingsByIndex(1).agentTypeID;
+
     }
 
     private void Start()
@@ -187,8 +201,55 @@ public class DungeonGenerator : MonoBehaviour
 
         Debug.Log($"✅ Dungeon gerada com {roomCount} salas conectadas (tiles e objetos).");
         mapaGerado = true;
+        yield return null;   // garante que Terrains e Colliders foram atualizados
 
-        MapWasGenerated();
+        humanSurface.BuildNavMesh();
+        ratSurface.BuildNavMesh();
+
+        foreach (var kvp in placedRooms)
+        {
+            Room room = kvp.Value;
+            if (room == null) continue;
+
+            // Inicializa NPCs
+            NPC[] nPCs = room.GetComponentsInChildren<NPC>();
+            foreach (var npc in nPCs)
+            {
+                if (npc == null) continue;
+
+                NavMeshAgent agent = npc.GetComponent<NavMeshAgent>();
+                if (agent == null) continue;
+
+                // Se houver diferentes tipos de NPCs, define agentTypeID aqui
+                agent.agentTypeID = humanAgentID; // ou outro tipo, se precisar
+
+                //npc.InitializeAfterNavmesh();
+            }
+
+            // Inicializa inimigos
+            Enemy[] enemies = room.GetComponentsInChildren<Enemy>();
+            foreach (var enemy in enemies)
+            {
+                if (enemy == null) continue;
+
+                NavMeshAgent agent = enemy.GetComponent<NavMeshAgent>();
+                if (agent == null) continue;
+
+                // Decide o agentType baseado no tamanho
+                if (enemy.enemySizeType == EnemySizeType.small)
+                {
+                    agent.agentTypeID = ratAgentID;
+                }
+                else
+                {
+                    agent.agentTypeID = humanAgentID;
+                }
+
+                enemy.InitializeAfterNavmesh();
+            }
+        }
+
+            MapWasGenerated();
     }
 
     // ============================================================

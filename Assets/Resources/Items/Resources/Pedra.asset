@@ -19,7 +19,7 @@ MonoBehaviour:
   cost: 1
   description: 
   itemType: 0
-  Weight: 4
+  Weight: 3
   resourceName: Pedrinhas
   requiredToolType: 0
   requiredToolLevel: 0

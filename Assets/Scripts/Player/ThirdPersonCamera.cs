@@ -46,6 +46,12 @@ public class ThirdPersonCamera : MonoBehaviour
         if (blockCamera || EventSystem.current.IsPointerOverGameObject())
             return;
 
+        if (lookAction == null || lookAction.action == null)
+        {
+            Debug.LogError("lookAction or lookAction.action is not assigned or initialized.");
+            return;
+        }
+
         Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
 
         // Leitura do mouse
